@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "CclSharp": {
+      "commandName": "Project",
+      "commandLineArgs": "UiComposer.cat"
+    }
+  }
+}
