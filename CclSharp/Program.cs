@@ -10,7 +10,7 @@ internal class Program
 
         if (File.Exists(file))
         {
-            var parser = Parser.FromFile(file);
+            var parser = Parser.FromFile("");
 
             var tree = parser.ParseFile(file);
 
