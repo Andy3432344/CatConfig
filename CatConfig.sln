@@ -11,6 +11,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CatConfig", "CatConfig\CatC
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{80D74657-997F-428D-8D9B-487F30541FA5}"
 	ProjectSection(SolutionItems) = preProject
+		README.md = README.md
 		revision.txt = revision.txt
 	EndProjectSection
 EndProject

@@ -1,2 +1,3 @@
 rev	change
 r1	Initial Commit
+r2	Added Reamdme w/ citation
