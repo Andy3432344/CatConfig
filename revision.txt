@@ -1,3 +1,6 @@
 rev	change
 r1	Initial Commit
 r2	Added Reamdme w/ citation
+r3	Added Unit Tests for 'Meta' key
+r3	Updated existing unit tests to test several meta scenarios 
+r3	Broke out "RunAllTests()" method into multiple tests

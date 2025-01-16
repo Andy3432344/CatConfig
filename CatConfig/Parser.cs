@@ -21,35 +21,75 @@ public class Parser
 	{
 		var ccl = parser.ParseContent(path, content);
 		var check = Constructor.GetStructure(ccl);
-		if (check is IUnitRecord checkRecord && checkRecord.FieldNames.Contains("meta", StringComparer.OrdinalIgnoreCase))
+		return GetMetaParser(check);
+	}
+
+	private static Parser GetMetaParser(IUnit check)
+	{
+		if (check is IUnitRecord meta && meta.Name.Equals("meta", StringComparison.OrdinalIgnoreCase))
 		{
-			var indentField = checkRecord["Indent"] as IUnitValue;
-			var stepField = checkRecord["IndentStep"] as IUnitValue;
-			var delimiterField = checkRecord["Delimiter"] as IUnitValue;
+			var indentField = meta["Indent"] as IUnitValue;
+			var stepField = meta["IndentStep"] as IUnitValue;
+			var delimiterField = meta["Delimiter"] as IUnitValue;
 
-			string indent = indentField?.Value ?? "\t";
+			string indent = indentField?.Value ?? "'\t'";
 			string step = stepField?.Value ?? "1";
-			string delimiter = delimiterField?.Value ?? "";
+			string delimiter = delimiterField?.Value ?? "'='";
+			int indentStep = 1;
 
-			if (indent.Length != 1)
-			{
-				indent = "\t";
-				step = "1";
-			}
+			var indentChar = GetCharLiteral(indent, '\'', '\t');
+			var delimiterChar = GetCharLiteral(delimiter, '\'', '=');
 
-			if (delimiter.Length != 1)
-				delimiter = "=";
+			if (delimiterChar == '\0')
+				delimiterChar = '=';
 
-			char indentChar = indent[0];
-			int.TryParse(step, out int indentStep);
+			if (!int.TryParse(step, out indentStep))
+				indentStep = 1;
 
-			return new Parser(indentChar, indentStep, delimiter[0]);
+			return new Parser(indentChar, indentStep, delimiterChar);
 
 		}
 
 		return parser;
 	}
 
+	private static char GetCharLiteral(string value, char enclosed, char @default)
+	{
+		string ret = GetStringLiteral(value, enclosed);
+
+		if (ret.Length == 1)
+			return ret[0];
+
+		return @default;
+
+
+	}
+
+	private static string GetStringLiteral(string value, char enclosed)
+	{
+		int i = 0;
+		int start = -1;
+		string ret = "";
+
+		while (i < value.Length)
+		{
+			char c = value[i];
+
+			if (c == enclosed)
+			{
+				if (start < 0)
+					start = i;
+				else
+					break;
+			}
+			else if (start >= 0)
+				ret += c;
+
+			i++;
+		}
+
+		return ret;
+	}
 
 	public static Parser FromFile(string filePath)
 	{
@@ -145,7 +185,7 @@ public class Parser
 				string key = ccl[keyStart..keyEnd].Trim();
 				index = keyEnd;
 
-				(int valueStart, int valueEnd) = GetValue(ccl, keyEnd, delimiter);
+				(int valueStart, int valueEnd) = GetValue(ccl, keyEnd, indent, delimiter);
 				string value = ccl[valueStart..valueEnd].Trim();
 				index = FindChar(ccl, valueStart, '\n');
 
@@ -283,7 +323,7 @@ public class Parser
 		return (start, end);
 	}
 
-	private static (int start, int end) GetValue(string ccl, int index, char delimiter)
+	private static (int start, int end) GetValue(string ccl, int index, char indent, char delimiter)
 	{
 		if (ccl[index] != delimiter)
 			return (index, index);
@@ -298,7 +338,7 @@ public class Parser
 		{
 			char c = ccl[index];
 
-			if (!char.IsWhiteSpace(c))
+			if (!char.IsWhiteSpace(c) && c!= indent)
 				if (valueStart == 0)
 				{
 					valueStart = index;
@@ -314,6 +354,9 @@ public class Parser
 
 		if (valueStart == 0)
 			valueStart = index;
+
+		if (index == ccl.Length)
+			lastLineBreak = ccl.Length;
 
 		if (index == ccl.Length || index < ccl.Length && ccl[index] == delimiter && lastLineBreak > valueStart)
 		{
