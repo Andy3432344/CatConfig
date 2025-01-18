@@ -175,10 +175,8 @@ public class NestedValueTests
 
 	private void RunTest(string ccl, string testName, Parser parser)
 	{
-		var tokens = parser.ParseContent(testName, ccl);
-		var testValue = Constructor.GetStructure(tokens);
-
-		VerifyUnit(testValue, parser, -1);
+		var unit = parser.ParseContent(testName, ccl);
+		VerifyUnit(unit, parser, -1);
 	}
 
 	private void VerifyUnit(IUnit unit, Parser parser, int level = 0, int index = 0)
@@ -239,26 +237,11 @@ public class NestedValueTests
 	private void VerifyMultiLine(string value, Parser parser)
 	{
 		string actual = MultiLineValue;
-		string expected = RemoveAllWhiteSpace(actual, parser.Indent);
-		string test = RemoveAllWhiteSpace(value, parser.Indent);
+		string expected = TestHelpers.RemoveAllWhiteSpace(actual, parser.Indent);
+		string test = TestHelpers.RemoveAllWhiteSpace(value, parser.Indent);
 		Assert.Equal(expected, test);
 
 	}
 
-	private static string RemoveAllWhiteSpace(string value, char indent)
-	{
-		string text = "";
-		int i = 0;
 
-		while (i < value.Length)
-		{
-			char c = value[i];
-			i++;
-			if (char.IsWhiteSpace(c) || c == indent)
-				continue;
-
-			text += c;
-		}
-		return text;
-	}
 }

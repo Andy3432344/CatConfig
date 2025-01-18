@@ -39,8 +39,7 @@ public class OneOffTests
             """;
 
 
-        var newLines = parser.ParseContent(nameof(SkippedLines), ccl);
-        var values = Constructor.GetStructure(newLines);
+        var values = parser.ParseContent(nameof(SkippedLines), ccl);
 
         var recordValue = values as IUnitRecord;
 
@@ -65,11 +64,8 @@ public class OneOffTests
     {
         string ccl = "KEY=";
 
-        var emptyValue = parser.ParseContent("", ccl);
+        var keyOnly = parser.ParseContent("", ccl);
 
-        Assert.Equal(1, emptyValue.Id);
-
-        var keyOnly = Constructor.GetStructure(emptyValue);
         var keyRecord = keyOnly as IUnitRecord;
 
         Assert.NotNull(keyRecord);
@@ -87,10 +83,8 @@ public class OneOffTests
     {
         string ccl = "=VALUE";
 
-        var emptyKey = parser.ParseContent("", ccl);
+        var valueOnly = parser.ParseContent("", ccl);
 
-        Assert.Equal(1, emptyKey.Id);
-        var valueOnly = Constructor.GetStructure(emptyKey);
         var valueRecord = valueOnly as IUnitRecord;
 
         Assert.NotNull(valueRecord);
@@ -112,9 +106,7 @@ public class OneOffTests
             Key = Value2
             """;
 
-        var dupKeys = parser.ParseContent("", ccl);
-        var dups = Constructor.GetStructure(dupKeys);
-
+        var dups = parser.ParseContent("", ccl);
         var arr = dups as IUnitArray;
 
         Assert.NotNull(arr);

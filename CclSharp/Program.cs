@@ -12,9 +12,8 @@ internal class Program
         {
             var parser = Parser.FromFile("");
 
-            var tree = parser.ParseFile(file);
+            var structure = parser.ParseFile(file);
 
-            var structure = Constructor.GetStructure(tree);
             PrintStructure(structure, 0);
         }
 

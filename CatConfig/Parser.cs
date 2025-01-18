@@ -20,8 +20,7 @@ public class Parser
 	public static Parser FromContent(string path, string content)
 	{
 		var ccl = parser.ParseContent(path, content);
-		var check = Constructor.GetStructure(ccl);
-		return GetMetaParser(check);
+		return GetMetaParser(ccl);
 	}
 
 	private static Parser GetMetaParser(IUnit check)
@@ -68,7 +67,7 @@ public class Parser
 	private static string GetStringLiteral(string value, char enclosed)
 	{
 		int i = 0;
-		int start = -1;
+		bool start = false;
 		string ret = "";
 
 		while (i < value.Length)
@@ -77,12 +76,12 @@ public class Parser
 
 			if (c == enclosed)
 			{
-				if (start < 0)
-					start = i;
+				if (!start)
+					start = true;
 				else
 					break;
 			}
-			else if (start >= 0)
+			else if (start)
 				ret += c;
 
 			i++;
@@ -103,13 +102,13 @@ public class Parser
 	}
 
 
-	public Ccl ParseFile(string filePath)
+	public IUnit ParseFile(string filePath)
 	{
 		string content = File.ReadAllText(filePath);
 		return ParseContent(filePath, content);
 	}
 
-	public Ccl ParseContent(string path, string content)
+	public IUnit ParseContent(string path, string content)
 	{
 		var nextKeyLength = NextKeyLength(content, 0, Delimiter, Indent);
 		int index = nextKeyLength >= 0 ? 0 : -1;
@@ -117,7 +116,7 @@ public class Parser
 		Ccl tree = new(index, 0, path);
 		Parse(content, tree, Delimiter, Indent, IndentStep);
 
-		return tree;
+		return Constructor.GetStructure(tree);
 	}
 
 	private static int NextKeyLength(string ccl, int index, char delimiter, char indent)
@@ -172,9 +171,9 @@ public class Parser
 			}
 
 			last = index;
-			int countSteps = GetNextLevel(ccl, index, level, delimiter, indent, indentStep);
+			int currentLevel = GetNextLevel(ccl, index, level, delimiter, indent, indentStep);
 
-			if (countSteps != level)
+			if (currentLevel != level)
 				break;
 
 			(int keyStart, int keyEnd) = GetKey(ccl, index, level, delimiter, indent, indentStep);
@@ -183,14 +182,27 @@ public class Parser
 			if (ccl[keyEnd] == delimiter)
 			{
 				string key = ccl[keyStart..keyEnd].Trim();
+				bool delay = key.Length > 1 && key[0] == '{' && key[^1] == '}';
+				int lineStart = index+1;
 				index = keyEnd;
+				string value = "";
 
-				(int valueStart, int valueEnd) = GetValue(ccl, keyEnd, indent, delimiter);
-				string value = ccl[valueStart..valueEnd].Trim();
-				index = FindChar(ccl, valueStart, '\n');
+				if (delay)
+				{
+					index = FindChar(ccl, index, '\n');
+					int delayLength = DistanceToNextSibling(ccl, index, level, delimiter, indent, indentStep);
+					int delayEnd = index + delayLength;
+					value = ccl[lineStart..delayEnd];
+					index += delayLength;
+				}
+				else
+				{
+					(int valueStart, int valueEnd) = GetValue(ccl, index, indent, delimiter);
+					value = ccl[valueStart..valueEnd].Trim();
+					index = FindChar(ccl, valueStart, '\n');
+				}
 
 				int nextLevel = GetLevelOfNextKey(ccl, index, level, delimiter, indent, indentStep);
-
 				if (!string.IsNullOrEmpty(value) || nextLevel <= level)
 				{
 					if (!parent.Items.TryGetValue(key, out var p))
@@ -246,7 +258,7 @@ public class Parser
 
 	private static int GetNextLevel(string ccl, int start, int level, char delimiter, char indent, int indentStep)
 	{
-		if (start == 0 || start < ccl.Length && ccl[start] == '\n')
+		if (start == 0 || (start < ccl.Length && ccl[start] == '\n'))
 		{
 			int index = start + 1;
 
@@ -270,6 +282,54 @@ public class Parser
 
 		return level;
 	}
+
+	/// <summary>
+	/// Computes the number of characters in ccl that exist between the 
+	/// 'start' index and the next New Line that precedes a line that is at
+	/// a level equal to or less than 'level'.
+	/// </summary>
+	/// <param name="ccl">Test to search in</param>
+	/// <param name="start">Index to start</param>
+	/// <param name="level">Level of indentation to seek</param>
+	/// <param name="delimiter">Character used to separate <Key> and <Value> ('=' by default)</param>
+	/// <param name="indent">Character used to set line level('\t' by default)</param>
+	/// <param name="indentStep">The number of 'indent' characters required to constitute one indent (1 by default)</param>
+	/// <returns>Character-Distance from start index to next indent level</returns>
+	private static int DistanceToNextSibling(string ccl, int start, int level, char delimiter, char indent, int indentStep)
+	{
+		int index = 0;
+		int nextLine = 0;
+
+		if (start == 0 || start < ccl.Length)
+		{
+			index = start + 1;
+			int lvl = 0;
+
+			//until: `lvl` == `level` (indicating next sibling)
+			//or lvl < level (indicating no more siblings to find)
+			while (index < ccl.Length && (lvl == 0 || lvl > level))
+			{
+				nextLine = FindChar(ccl, index, '\n');
+				if (nextLine == 0)
+					return ccl.Length - start;
+
+				index = nextLine + 1;//beginning of line
+				int i = 0;
+
+				//until first character of key
+				while (index + i < ccl.Length && ccl[index + i] == indent)
+					i++;
+
+				lvl = i / indentStep;
+			}
+
+		}
+
+		return nextLine - start;
+	}
+
+
+
 
 	private static int FindChar(string ccl, int i, char c)
 	{
@@ -338,7 +398,7 @@ public class Parser
 		{
 			char c = ccl[index];
 
-			if (!char.IsWhiteSpace(c) && c!= indent)
+			if (!char.IsWhiteSpace(c) && c != indent)
 				if (valueStart == 0)
 				{
 					valueStart = index;
