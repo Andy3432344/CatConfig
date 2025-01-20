@@ -78,8 +78,9 @@ public static class Constructor
 
 		}
 
+
 		if (string.IsNullOrEmpty(text) && rec.Count == 1 && rec.Values.First() is IComplexUnit)
-			return rec.Values.First();
+			return rec.Values.First();//r5
 
 		return new UnitRecord(id, text, rec);
 	}
@@ -131,7 +132,7 @@ public class UnitRecord : IUnitRecord, IComplexUnit
 public record NoValue(int Id = 0) : IUnit;
 public record EmptyValue(int Id) : IUnit, IEmptyUnit;
 public record DelayedUnit(int Id, int Level, string Value) : IDelayedUnit;
-public interface IDelayedUnit : IUnit
+public interface IDelayedUnit : IComplexUnit
 {
 	int Level { get; }
 	string Value { get; }
