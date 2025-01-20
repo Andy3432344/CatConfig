@@ -26,3 +26,12 @@ r5	Parser.ParseContent() now checks level of next key (GetNextLevel) and, if > 0
 r5	Parset.BackDent method gets level (n) of first key, removes (n) steps of indent from each key
 r5	DelayedUnitTests TestLoadDelayedUnit converts delayed unit to a record and verifies the 'URL' field value
 r5	DelayedUnitWhitespace runs above test with ignorable new lines and delimiters inserted ahead of the test tree
+r6	NestedValue tests replaced '\0' in first test case dilimiter with '='
+r6	Added const's for default values of Indent, IndentStep and Delimiter
+r6	New Method Parser.GetEndOfMeta() 
+r6	Parser.ParseContent code broken out into ParseContentInternal
+r6	Parser.ParseContent() now calls ParseContentInternal starting at the end of meta by first calling GetEndOfMeta
+r6	Parser.FromContent() now calls GetEndOfMeta and calls GetMetaParser with path and content up to the end of meta key-value
+r6	Parser.GetMetaParser(path,content) overload calls ParseContentInternal to get meta unit which is then pased to orig. GetMetaParser(unit)
+r6	ParserHelpers.DistanceToNextSibling() now public and renamed to GetDistanceToNextSibling
+r6	GetDistanceToNextSibling parsing loop now using `bool first` technique rather than checking index, much simpler

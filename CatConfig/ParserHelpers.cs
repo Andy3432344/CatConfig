@@ -15,7 +15,7 @@ internal static class ParserHelpers
 	/// <param name="indent">Character used to set line level('\t' by default)</param>
 	/// <param name="indentStep">The number of 'indent' characters required to constitute one indent (1 by default)</param>
 	/// <returns>Character-Distance from start index to next indent level</returns>
-	private static int DistanceToNextSibling(string ccl, int start, int level, char delimiter, char indent, int indentStep)
+	public static int GetDistanceToNextSibling(string ccl, int start, int level, char delimiter, char indent, int indentStep)
 	{
 		int index = 0;
 		int nextLine = 0;
@@ -23,12 +23,14 @@ internal static class ParserHelpers
 		if (start == 0 || start < ccl.Length)
 		{
 			index = start + 1;
+			bool first = true;
 			int lvl = 0;
 
 			//until: `lvl` == `level` (indicating next sibling)
 			//or lvl < level (indicating no more siblings to find)
-			while (index < ccl.Length && (lvl == 0 || lvl > level))
+			while (index < ccl.Length && (first || lvl > level))
 			{
+				first = false;
 				nextLine = FindChar(ccl, index, '\n');
 				if (nextLine == 0)
 					return ccl.Length - start;
@@ -91,7 +93,9 @@ internal static class ParserHelpers
 		if (i > ccl.Length || i > 0 && ccl[i] != '\n')
 			return (i, i);
 
-		if (i > 0 || (ccl.Length>0&& ccl[i]=='\n'))
+
+		//the 'OR' case is important to avoid getting stuck on  new line
+		if (i > 0 || (ccl.Length > 0 && ccl[i] == '\n'))
 			i++;
 
 		int lvlCount = 0;
@@ -276,7 +280,7 @@ internal static class ParserHelpers
 				if (delay)
 				{
 					index = FindChar(ccl, index, '\n');
-					int delayLength = DistanceToNextSibling(ccl, index, level, delimiter, indent, indentStep);
+					int delayLength = GetDistanceToNextSibling(ccl, index, level, delimiter, indent, indentStep);
 					int delayEnd = index + delayLength;
 					value = ccl[lineStart..delayEnd];
 					index += delayLength;

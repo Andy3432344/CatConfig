@@ -63,7 +63,7 @@ public class NestedValueTests
 
 	List<(char Indent, int Step, char Delimiter)> tests =
 		[
-		(' ', 2, '\0'),
+		(' ', 2, '='),
 		(' ', 2, ':'),
 		("\u2192"[0], 1, '-')
 		];
@@ -102,8 +102,14 @@ public class NestedValueTests
 
 		foreach (var test in tests)
 		{
-			parser = Parser.FromContent("", meta(test.Indent, test.Step, test.Delimiter));
-			var baseStructure = TestHelpers.GetNestedStructure(parser.Indent, parser.IndentStep, parser.Delimiter) + '\n';
+			string m = meta(test.Indent, test.Step, test.Delimiter);
+			var baseStructure = m + '\n' + TestHelpers.GetNestedStructure(test.Indent, test.Step, test.Delimiter) + '\n';
+
+			parser = Parser.FromContent("", baseStructure);
+			Assert.Equal(test.Indent, parser.Indent);
+			Assert.Equal(test.Indent, parser.Indent);
+			Assert.Equal(test.Delimiter, parser.Delimiter);
+
 			RunTest(baseStructure, nameof(BaseNestedStructure), parser);
 		}
 
@@ -120,9 +126,9 @@ public class NestedValueTests
 
 		foreach (var test in tests)
 		{
-			parser = Parser.FromContent("", meta(test.Indent, test.Step, test.Delimiter));
-
-			var baseStructure = TestHelpers.GetNestedStructure(parser.Indent, parser.IndentStep, parser.Delimiter) + '\n';
+			string m = meta(test.Indent, test.Step, test.Delimiter);
+			var baseStructure = m + '\n' + TestHelpers.GetNestedStructure(test.Indent, test.Step, test.Delimiter) + '\n';
+			parser = Parser.FromContent("", baseStructure);
 			var append = TestHelpers.InsertArrayValues(3, 3, 2, parser);
 
 			RunTest(baseStructure + append, nameof(AppendedStructure), parser);
