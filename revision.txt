@@ -17,3 +17,12 @@ r4	The Delayed record *MUST* include a field called 'URL' which will hold a path
 r4	The URL path may be interpolated by wrapping placeholder variables in curly braces (TODO: [])
 r4	Placeholder values that appear in the URL *MUST* be accompanied by a field of the same name, to be used in the URL path in place of the variable (TODO: [])
 r4	Created test for Delayed Unit
+r5	Parser static methods Broken out to ParserHelpers
+r5	Removed Parser.NextKeyLength() method to fix weird logic that was handling empty content scenario in Parser.ParseContent()
+r5	IDelayedUnit decorated with IComplexUnit to allow Single-Value return from Constructor
+r5	Parser.GetCharLiteral() and Parser.GetStringLiteral Moved to LiteralHelpers static class, now public
+r5	ParserHelpers static class now containns all other static methods previously in Parser class
+r5	Parser.ParseContent() now checks level of next key (GetNextLevel) and, if > 0 calls new Parser.BackDent() static method
+r5	Parset.BackDent method gets level (n) of first key, removes (n) steps of indent from each key
+r5	DelayedUnitTests TestLoadDelayedUnit converts delayed unit to a record and verifies the 'URL' field value
+r5	DelayedUnitWhitespace runs above test with ignorable new lines and delimiters inserted ahead of the test tree
