@@ -63,7 +63,7 @@ public class NestedValueTests
 
 	List<(char Indent, int Step, char Delimiter)> tests =
 		[
-		(' ', 2, '\0'),
+		(' ', 2, '='),
 		(' ', 2, ':'),
 		("\u2192"[0], 1, '-')
 		];
@@ -102,8 +102,14 @@ public class NestedValueTests
 
 		foreach (var test in tests)
 		{
-			parser = Parser.FromContent("", meta(test.Indent, test.Step, test.Delimiter));
-			var baseStructure = TestHelpers.GetNestedStructure(parser.Indent, parser.IndentStep, parser.Delimiter) + '\n';
+			string m = meta(test.Indent, test.Step, test.Delimiter);
+			var baseStructure = m + '\n' + TestHelpers.GetNestedStructure(test.Indent, test.Step, test.Delimiter) + '\n';
+
+			parser = Parser.FromContent("", baseStructure);
+			Assert.Equal(test.Indent, parser.Indent);
+			Assert.Equal(test.Indent, parser.Indent);
+			Assert.Equal(test.Delimiter, parser.Delimiter);
+
 			RunTest(baseStructure, nameof(BaseNestedStructure), parser);
 		}
 
@@ -120,9 +126,9 @@ public class NestedValueTests
 
 		foreach (var test in tests)
 		{
-			parser = Parser.FromContent("", meta(test.Indent, test.Step, test.Delimiter));
-
-			var baseStructure = TestHelpers.GetNestedStructure(parser.Indent, parser.IndentStep, parser.Delimiter) + '\n';
+			string m = meta(test.Indent, test.Step, test.Delimiter);
+			var baseStructure = m + '\n' + TestHelpers.GetNestedStructure(test.Indent, test.Step, test.Delimiter) + '\n';
+			parser = Parser.FromContent("", baseStructure);
 			var append = TestHelpers.InsertArrayValues(3, 3, 2, parser);
 
 			RunTest(baseStructure + append, nameof(AppendedStructure), parser);
@@ -175,10 +181,8 @@ public class NestedValueTests
 
 	private void RunTest(string ccl, string testName, Parser parser)
 	{
-		var tokens = parser.ParseContent(testName, ccl);
-		var testValue = Constructor.GetStructure(tokens);
-
-		VerifyUnit(testValue, parser, -1);
+		var unit = parser.ParseContent(testName, ccl);
+		VerifyUnit(unit, parser, -1);
 	}
 
 	private void VerifyUnit(IUnit unit, Parser parser, int level = 0, int index = 0)
@@ -239,26 +243,11 @@ public class NestedValueTests
 	private void VerifyMultiLine(string value, Parser parser)
 	{
 		string actual = MultiLineValue;
-		string expected = RemoveAllWhiteSpace(actual, parser.Indent);
-		string test = RemoveAllWhiteSpace(value, parser.Indent);
+		string expected = TestHelpers.RemoveAllWhiteSpace(actual, parser.Indent);
+		string test = TestHelpers.RemoveAllWhiteSpace(value, parser.Indent);
 		Assert.Equal(expected, test);
 
 	}
 
-	private static string RemoveAllWhiteSpace(string value, char indent)
-	{
-		string text = "";
-		int i = 0;
 
-		while (i < value.Length)
-		{
-			char c = value[i];
-			i++;
-			if (char.IsWhiteSpace(c) || c == indent)
-				continue;
-
-			text += c;
-		}
-		return text;
-	}
 }

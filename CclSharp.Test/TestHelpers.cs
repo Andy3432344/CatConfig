@@ -36,10 +36,10 @@ namespace CclSharp.Test
 
 
 		public static string InsertStructure(string insert, string before, string after, Parser p) => before + insert + after;
-			//$"\n{indent(p.Indent, p.IndentStep)}{indent(p.Indent, p.IndentStep)}{indent(p.Indent, p.IndentStep)}Level3Array3 {p.Delimiter}" +
-			//$"\n{indent(p.Indent, p.IndentStep)}{indent(p.Indent, p.IndentStep)}{indent(p.Indent, p.IndentStep)}{indent(p.Indent, p.IndentStep)}{p.Delimiter}Value4/1" +
-			//$"\n{indent(p.Indent, p.IndentStep)}{indent(p.Indent, p.IndentStep)}{indent(p.Indent, p.IndentStep)}{indent(p.Indent, p.IndentStep)}{p.Delimiter}Value4/2\n" +
-			
+		//$"\n{indent(p.Indent, p.IndentStep)}{indent(p.Indent, p.IndentStep)}{indent(p.Indent, p.IndentStep)}Level3Array3 {p.Delimiter}" +
+		//$"\n{indent(p.Indent, p.IndentStep)}{indent(p.Indent, p.IndentStep)}{indent(p.Indent, p.IndentStep)}{indent(p.Indent, p.IndentStep)}{p.Delimiter}Value4/1" +
+		//$"\n{indent(p.Indent, p.IndentStep)}{indent(p.Indent, p.IndentStep)}{indent(p.Indent, p.IndentStep)}{indent(p.Indent, p.IndentStep)}{p.Delimiter}Value4/2\n" +
+
 
 
 		public static string InsertArrayValues(int insertLevel, int index, int valueCount, Parser p)
@@ -63,19 +63,36 @@ namespace CclSharp.Test
 			for (int i = 1; i <= valueCount; i++)
 			{
 
-				value += IndentLevel(p.Indent, level, "", p.IndentStep) + $"{fields[i-1]}{p.Delimiter}Value{index + 1}/{i}\n";
+				value += IndentLevel(p.Indent, level, "", p.IndentStep) + $"{fields[i - 1]}{p.Delimiter}Value{index + 1}/{i}\n";
 
 			}
 			return key + value;
 		}
 
 		public static string IndentLevel(string indent, int level, string text) => $"{indent}{text}";
-		public static string IndentLevel(char indent, int level, string text, int step) => $"{TestHelpers.indent(indent, level*step)}{text}";
+		public static string IndentLevel(char indent, int level, string text, int step) => $"{TestHelpers.indent(indent, level * step)}{text}";
 
 
 		private static string indent(char i, int s)
 		{
 			return new(Enumerable.Repeat(i, s).ToArray());
+		}
+
+		public static string RemoveAllWhiteSpace(string value, char indent)
+		{
+			string text = "";
+			int i = 0;
+
+			while (i < value.Length)
+			{
+				char c = value[i];
+				i++;
+				if (char.IsWhiteSpace(c) || c == indent)
+					continue;
+
+				text += c;
+			}
+			return text;
 		}
 	}
 }

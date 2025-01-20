@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -14,6 +15,8 @@ public static class Constructor
 
 	private static IUnit GetUnit(int id, string text, Dictionary<string, List<Ccl>> tree)
 	{
+
+
 		if (tree.Keys.Count == 0)
 			return new UnitValue(id, text);
 		else
@@ -28,17 +31,25 @@ public static class Constructor
 		{
 			List<IUnit> values = new();
 
+
+
 			foreach (var v in item.Value)
 			{
 				string unitText = v.StringValue;
 				if (!string.IsNullOrEmpty(unitText))
 				{
-					var unit = GetUnit(v.Id, unitText, v.Items);
+					IUnit unit;
+
+					if (IsDelayed(item, out Ccl? delayed))
+						unit = new DelayedUnit(delayed.Id, delayed.Level, delayed.StringValue);
+					else
+						unit = GetUnit(v.Id, unitText, v.Items);
 
 					if (unit is IUnitRecord uRec)
 						if (uRec.FieldNames.Length == 1)
 							if (uRec.FieldNames[0].Equals(uRec.Name, StringComparison.OrdinalIgnoreCase))
 								unit = uRec[uRec.FieldNames[0]];
+
 
 					values.Add(unit);
 				}
@@ -51,12 +62,10 @@ public static class Constructor
 
 		}
 
-
 		Dictionary<string, IUnit> rec = new();
 
 		foreach (var unit in units)
 		{
-
 			if (unit.Value.Count == 0)
 				rec.Add(unit.Key, new EmptyValue(id));
 			if (unit.Value.Count == 1)
@@ -69,12 +78,32 @@ public static class Constructor
 
 		}
 
+
 		if (string.IsNullOrEmpty(text) && rec.Count == 1 && rec.Values.First() is IComplexUnit)
-			return rec.Values.First();
+			return rec.Values.First();//r5
 
 		return new UnitRecord(id, text, rec);
 	}
+
+	private static bool IsDelayed(KeyValuePair<string, List<Ccl>> candidate, [NotNullWhen(true)] out Ccl? delayedItem)
+	{
+		delayedItem = candidate.Value.FirstOrDefault();
+
+		var delayed = (delayedItem != null &&
+			candidate.Value.Count == 1 &&
+			candidate.Key.Length > 1 &&
+			candidate.Key[0] == '{' &&
+			candidate.Key[^1] == '}');
+
+		if (!delayed)
+			delayedItem = null;
+
+		return delayed;
+
+	}
 }
+
+
 
 public record UnitValue(int Id, string Value) : IUnitValue;
 public record UnitArray(int Id, IUnit[] Elements) : IUnitArray, IComplexUnit;
@@ -102,6 +131,12 @@ public class UnitRecord : IUnitRecord, IComplexUnit
 
 public record NoValue(int Id = 0) : IUnit;
 public record EmptyValue(int Id) : IUnit, IEmptyUnit;
+public record DelayedUnit(int Id, int Level, string Value) : IDelayedUnit;
+public interface IDelayedUnit : IComplexUnit
+{
+	int Level { get; }
+	string Value { get; }
+}
 
 public interface IComplexUnit : IUnit;
 public interface IEmptyUnit : IUnit;
