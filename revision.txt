@@ -13,9 +13,9 @@ r4	The entire (ccl) text of the Key / Value pair is stored as the string value
 r4	When a Key is found to be for a 'delayed' unit the Parser will now advance to the next key that is at the same (or lower) indentation level
 r4	Constructor now creates an 'IDelayedUnit' which stores the original ccl level for future back-denting
 r4	The Delayed value *MUST* be of a record type (though it does not need to resolve to a reocrd type)
-r4	The Delayed record *MUST* include a field called 'URL' which will hold a path that will be used to resolve the true value (TODO: [])
-r4	The URL path may be interpolated by wrapping placeholder variables in curly braces (TODO: [])
-r4	Placeholder values that appear in the URL *MUST* be accompanied by a field of the same name, to be used in the URL path in place of the variable (TODO: [])
+r4	The Delayed record *MUST* include a field called 'URL' which will hold a path that will be used to resolve the true value (TODO: [r7])
+r4	The URL path may be interpolated by wrapping placeholder variables in curly braces (TODO: [r7])
+r4	Placeholder values that appear in the URL *MUST* be accompanied by a field of the same name, to be used in the URL path in place of the variable (TODO: [r7])
 r4	Created test for Delayed Unit
 r5	Parser static methods Broken out to ParserHelpers
 r5	Removed Parser.NextKeyLength() method to fix weird logic that was handling empty content scenario in Parser.ParseContent()
@@ -31,7 +31,18 @@ r6	Added const's for default values of Indent, IndentStep and Delimiter
 r6	New Method Parser.GetEndOfMeta() 
 r6	Parser.ParseContent code broken out into ParseContentInternal
 r6	Parser.ParseContent() now calls ParseContentInternal starting at the end of meta by first calling GetEndOfMeta
-r6	Parser.FromContent() now calls GetEndOfMeta and calls GetMetaParser with path and content up to the end of meta key-value
-r6	Parser.GetMetaParser(path,content) overload calls ParseContentInternal to get meta unit which is then pased to orig. GetMetaParser(unit)
-r6	ParserHelpers.DistanceToNextSibling() now public and renamed to GetDistanceToNextSibling
-r6	GetDistanceToNextSibling parsing loop now using `bool first` technique rather than checking index, much simpler
+r6	static Parser.FromContent() now calls GetEndOfMeta and calls GetMetaParser with path and content up to the end of meta key-value
+r6	static Parser.GetMetaParser(path,content) overload calls ParseContentInternal to get meta unit which is then pased to orig. GetMetaParser(unit)
+r6	static ParserHelpers.DistanceToNextSibling() now public and renamed to GetDistanceToNextSibling
+r6	static GetDistanceToNextSibling parsing loop now using `bool first` technique rather than checking index, much simpler
+r7	static Parser.ParseContentInternal() now requires a Parser to work with
+r7	static Parser.GetMetaParser() updated to use Default values from [r6]
+r7	DisplayUnit class moved to new file
+r7	Removed IDelayedUnit properties and existing tests
+r7	Created interfaces IDelayedProcessor and IDelayedAccessor
+r7	Test implementation of above, see TestUnitProcessor class
+r7	Added processesor Registration to Constructor, Func now passed into record for use with delayed units
+r7	static Constructor.GetDelayedRecord method used to strip curly braces from delayed key name
+r7	static Constructor.GetStructure method now requires the parser that was used to read the ccl
+r7	The GetStructure method passes the parser on, eventually to a DelayedUnit which can use it to resolve the host record
+r7	Added test to run through delayed unit scenario (basically an x + y function)
