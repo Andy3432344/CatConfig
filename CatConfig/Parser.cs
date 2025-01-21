@@ -49,18 +49,22 @@ public class Parser
 
 	private static Parser GetMetaParser(string path, string ccl)
 	{
-		var meta = ParseContentInternal(path, ccl, DefaultDelimiter, DefaultIndent, DefaultIndentStep);
+		var meta = ParseContentInternal(path, ccl, parser);
 		return GetMetaParser(meta);
 	}
 
-	private static IUnit ParseContentInternal(string path, string content, char delimiter, char indent, int indentStep)
+	private static IUnit ParseContentInternal(string path, string content, Parser parser)
 	{
+		char delimiter = parser.Delimiter;
+		char indent = parser.Indent;
+		int indentStep = parser.IndentStep;
+
 		int currentLevel = ParserHelpers.GetNextLevel(content, 0, 0, delimiter, indent, indentStep);
 
 		if (currentLevel > 0)
 		{
 			var nextKey = ParserHelpers.GetNextKeyLineStart(content, 0, currentLevel, delimiter, indent, indentStep);
-			content = BackDent(content[nextKey..], indent, indentStep);
+			content = BackDent(content[nextKey..], parser.Indent, parser.IndentStep);
 		}
 
 		int index = content.IndexOf(delimiter);
@@ -69,7 +73,7 @@ public class Parser
 		Ccl tree = new(index, 0, path);
 		ParserHelpers.Parse(content, tree, delimiter, indent, indentStep);
 
-		return Constructor.GetStructure(tree);
+		return Constructor.GetStructure(tree, parser);
 	}
 
 
@@ -82,13 +86,13 @@ public class Parser
 			var stepField = meta["IndentStep"] as IUnitValue;
 			var delimiterField = meta["Delimiter"] as IUnitValue;
 
-			string indent = indentField?.Value ?? "'\t'";
-			string step = stepField?.Value ?? "1";
+			string indent = indentField?.Value ?? "'" + DefaultIndent.ToString() + "'";
+			string step = stepField?.Value ?? "'" + DefaultIndentStep.ToString() + "'";
 			string delimiter = delimiterField?.Value ?? "'='";
 			int indentStep = 1;
 
-			var indentChar = LiteralHelpers.GetCharLiteral(indent, '\'', '\t');
-			var delimiterChar = LiteralHelpers.GetCharLiteral(delimiter, '\'', '=');
+			var indentChar = LiteralHelpers.GetCharLiteral(indent, '\'', DefaultIndent);
+			var delimiterChar = LiteralHelpers.GetCharLiteral(delimiter, '\'', DefaultDelimiter);
 
 			if (delimiterChar == '\0')
 				delimiterChar = '=';
@@ -124,7 +128,7 @@ public class Parser
 	{
 		int start = GetEndOfMeta(content);
 
-		return ParseContentInternal(path, content[start..], Delimiter, Indent, IndentStep);
+		return ParseContentInternal(path, content[start..], this);
 	}
 
 

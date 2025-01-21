@@ -1,37 +1,58 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace CatConfig;
 public static class Constructor
 {
-	public static IUnit GetStructure(Ccl token) =>
-		GetUnit(token.Id, token.StringValue, token.Items);
+
+	private static NoValue? noValue = null;
+	private static Dictionary<string, Dictionary<string, IDelayedProcessor>>
+		processors = new(StringComparer.OrdinalIgnoreCase);
+
+	public static bool RegisterProcessor(IDelayedProcessor processor)
+	{
+		if (!processors.TryGetValue(processor.ProtocolSchema, out var schemaProcs))
+			schemaProcs = processors[processor.ProtocolSchema] = new(StringComparer.OrdinalIgnoreCase);
+
+		return schemaProcs.TryAdd(processor.Name, processor);
+	}
 
 
+	private static IUnit GetDelayedUnitValue(IDelayedUnit delayed)
+	{
+		if (processors.TryGetValue(delayed.GetProtocolSchema(), out var procs))
+			if (procs.TryGetValue(delayed.GetHostName(), out var proc))
+				return proc.ResolveDelayedUnit(delayed);
 
-	private static IUnit GetUnit(int id, string text, Dictionary<string, List<Ccl>> tree)
+		return noValue ??= new();
+	}
+
+	public static IUnit GetStructure(Ccl token, Parser parser) =>
+		GetUnit(token.Id, token.StringValue, parser, token.Items);
+
+	private static IUnit GetUnit(int id, string text, Parser parser, Dictionary<string, List<Ccl>> tree)
 	{
 
 
 		if (tree.Keys.Count == 0)
 			return new UnitValue(id, text);
 		else
-			return GetComplexUnit(id, text, tree);
+			return GetComplexUnit(id, text, parser, tree);
 	}
 
-	private static IUnit GetComplexUnit(int id, string text, Dictionary<string, List<Ccl>> tree)
+	private static IUnit GetComplexUnit(int id, string text, Parser parser, Dictionary<string, List<Ccl>> tree)
 	{
 		Dictionary<string, List<IUnit>> units = new();
 
 		foreach (var item in tree)
 		{
 			List<IUnit> values = new();
-
-
 
 			foreach (var v in item.Value)
 			{
@@ -41,9 +62,9 @@ public static class Constructor
 					IUnit unit;
 
 					if (IsDelayed(item, out Ccl? delayed))
-						unit = new DelayedUnit(delayed.Id, delayed.Level, delayed.StringValue);
+						unit = new DelayedUnit(delayed.Id, delayed.Level, item.Key[1..^1], GetDelayedRecord(delayed.StringValue), parser);
 					else
-						unit = GetUnit(v.Id, unitText, v.Items);
+						unit = GetUnit(v.Id, unitText, parser, v.Items);
 
 					if (unit is IUnitRecord uRec)
 						if (uRec.FieldNames.Length == 1)
@@ -82,7 +103,28 @@ public static class Constructor
 		if (string.IsNullOrEmpty(text) && rec.Count == 1 && rec.Values.First() is IComplexUnit)
 			return rec.Values.First();//r5
 
-		return new UnitRecord(id, text, rec);
+		return new UnitRecord(id, text, rec, GetDelayedUnitValue);
+	}
+
+	private static string GetDelayedRecord(string content)
+	{
+		string ccl = "";
+		char c = '\0';
+		bool start = false;
+		int i = 0;
+
+		while (i < content.Length && (c = content[i]) != '}')
+		{
+			if (c != '{')
+				ccl += content[i];
+
+			i++;
+		}
+
+		if (c == '}')
+			i++;
+
+		return ccl + content[i..];
 	}
 
 	private static bool IsDelayed(KeyValuePair<string, List<Ccl>> candidate, [NotNullWhen(true)] out Ccl? delayedItem)
@@ -107,18 +149,28 @@ public static class Constructor
 
 public record UnitValue(int Id, string Value) : IUnitValue;
 public record UnitArray(int Id, IUnit[] Elements) : IUnitArray, IComplexUnit;
+public record NoRecord : IUnitRecord
+{
 
+	private readonly NoValue noUnit = new();
+	public IUnit this[string fieldName] => noUnit;
+
+	public string Name => nameof(NoRecord);
+	public string[] FieldNames => [];
+	public int Id => -1;
+}
 
 public class UnitRecord : IUnitRecord, IComplexUnit
 {
 	private readonly NoValue noUnit;
 	private readonly Dictionary<string, IUnit> tree;
-
-	public UnitRecord(int id, string name, Dictionary<string, IUnit> tree)
+	private readonly Func<IDelayedUnit, IUnit> resolver;
+	public UnitRecord(int id, string name, Dictionary<string, IUnit> tree, Func<IDelayedUnit, IUnit> resolver)
 	{
 		Id = id;
 		FieldNames = tree.Keys.ToArray();
 		Name = name;
+		this.resolver = resolver;
 		this.tree = new(tree, StringComparer.OrdinalIgnoreCase);
 		noUnit = new();
 	}
@@ -126,17 +178,45 @@ public class UnitRecord : IUnitRecord, IComplexUnit
 	public int Id { get; }
 	public string Name { get; }
 	public string[] FieldNames { get; }
-	public IUnit this[string fieldName] => tree.GetValueOrDefault(fieldName, noUnit);
+	public IUnit this[string fieldName] => GetUnitValue(fieldName);
+
+	private IUnit GetUnitValue(string fieldName)
+	{
+		var val = tree.GetValueOrDefault(fieldName, noUnit);
+
+		if (val is IDelayedUnit delayed)
+			val = resolver(delayed);
+
+		return val;
+	}
 }
+
+public record UnitUrl(string Schema, string Key, string Host, string path);
 
 public record NoValue(int Id = 0) : IUnit;
 public record EmptyValue(int Id) : IUnit, IEmptyUnit;
-public record DelayedUnit(int Id, int Level, string Value) : IDelayedUnit;
+
+public interface IDelayedProcessor
+{
+	string Name { get; }
+	string ProtocolSchema { get; }
+
+	IUnit ResolveDelayedUnit(IDelayedUnit delayed);
+}
+
+public interface IDelayedAccessor
+{
+	void DeliverRecord(int id, IUnitRecord hostRecord);
+}
+
 public interface IDelayedUnit : IComplexUnit
 {
-	int Level { get; }
-	string Value { get; }
+	void GetHostRecord(IDelayedAccessor accessor);
+	string GetHostName();
+	string GetProtocolSchema();
+	string GetPath();
 }
+
 
 public interface IComplexUnit : IUnit;
 public interface IEmptyUnit : IUnit;
