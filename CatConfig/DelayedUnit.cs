@@ -2,28 +2,20 @@
 
 public class DelayedUnit : IDelayedUnit
 {
-	private readonly int level;
 	private readonly string schema = "";
-	private readonly string key = "";
 	private readonly string host = "";
 	private readonly string path = "";
 
 	public int Id { get; }
+	public string Name { get; }
 
-	public void GetHostRecord(IDelayedAccessor accessor) =>
-		accessor.DeliverRecord(Id, GetRecord());
-
-
-	public DelayedUnit(int id, int level, string key, string value, Parser parser)
+	public DelayedUnit(int id, string key, Func<IUnitRecord> getRecord)
 	{
 		Id = id;
-		this.level = level;
-		this.value = value;
-		this.parser = parser;
+		Name = key;
+		this.getRecord = getRecord;
 		string fullPath = GetUrlPath();
 		int phase = 0;
-
-
 
 		int i = 0;
 		while (i < fullPath.Length)
@@ -72,28 +64,73 @@ public class DelayedUnit : IDelayedUnit
 		return path;
 	}
 
-	protected IUnitRecord GetRecord() => unit ??= (parser.ParseContent(key, value) as IUnitRecord ?? NoRecord);
+	protected IUnitRecord GetRecord() => unit ??= getRecord();
 	private IUnitRecord? unit = null;
-	private readonly Parser parser;
-	private readonly string value;
-	protected NoRecord NoRecord => noRecord ??= new();
-	private NoRecord? noRecord = null;
+	private readonly Func<IUnitRecord> getRecord;
+
 
 
 	public string GetProtocolSchema()
 	{
-		return Interpolate(schema);
+			return Interpolate(schema);
 	}
 
 	public string GetHostName()
 	{
-		return Interpolate(host);
+			return Interpolate(host);
 	}
 
 	public string GetPath()
 	{
-		return Interpolate(path);
+			return Interpolate(path);
 	}
+
+	public IDelayedUnit ResolveUrl(Func<int, string, string, IUnitRecord> resolver, string[] fields)
+	{
+		var index = 0;
+		string schemaName = GetFormattedString(schema, fields, ref index);
+		string hostName = GetFormattedString(host, fields, ref index);
+		string requestPath = GetFormattedString(path, fields, ref index);
+
+		string fullPath = $"{schemaName}://{hostName}/{requestPath}";
+
+		return new DelayedUnit(Id, Name, () => resolver(Id, Name, fullPath));
+
+	}
+
+
+	private string GetFormattedString(string text, string[] fields, ref int index)
+	{
+		string result = "";
+		int phase = 0;
+		int i = 0;
+
+		while (i < text.Length)
+		{
+			char c = text[i];
+			if (phase == 0)
+			{
+				if (c == '{')
+					phase = 1;
+				else
+					result += c;
+			}
+			else
+			{
+				if (c == '}')
+				{
+					phase = 0;
+					result += fields[index];
+					index++;
+				}
+			}
+			i++;
+		}
+
+		return result;
+	}
+
+
 
 	private string Interpolate(string value)
 	{
@@ -118,7 +155,7 @@ public class DelayedUnit : IDelayedUnit
 					if (c == '}')
 					{
 						phase = 0;
-						resolved += rec[current];
+						resolved += (rec[current] as IUnitValue)?.Value ?? "";
 						current = "";
 					}
 					else
@@ -132,5 +169,4 @@ public class DelayedUnit : IDelayedUnit
 		return resolved;
 
 	}
-
 }
