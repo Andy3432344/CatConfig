@@ -71,7 +71,7 @@ public class Parser
 		index = int.Clamp(index, -1, 0);
 
 		Ccl tree = new(index, 0, path);
-		ParserHelpers.Parse(content, tree, delimiter, indent, indentStep);
+		ParserHelpers.Parse(content,tree, delimiter, indent, indentStep);
 
 		return Constructor.GetStructure(tree, parser);
 	}

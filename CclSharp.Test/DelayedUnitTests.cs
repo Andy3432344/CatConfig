@@ -15,7 +15,8 @@ namespace CclSharp.Test
 		{
 			Constructor.RegisterProcessor(new TestUnitProcessor());
 		}
-		static string url = "test://Test/{x}/{y}";
+
+		static string url = "test://Test/{x}+{y}";
 		static string lorem =
 		"""
 		Interdum  =
@@ -27,14 +28,14 @@ namespace CclSharp.Test
 
 		static string delayed = '\n' +
 		$$"""
-			{Nunc} = 
+			{Sum} = 
 				URL = {{url}}
 				x = 10
 				y = 5
 		""" + '\n';
 
 
-		static string ipsum = "\tEtiam = _ -> true;";
+		static string ipsum = "\tEtiam = true";
 		static string test = lorem + delayed + ipsum;
 
 		[Fact]
@@ -49,7 +50,7 @@ namespace CclSharp.Test
 			Assert.NotNull(rec);
 
 
-			var value = rec["{Nunc}"];
+			var value = rec["Sum"];
 			var unit = value as IUnitValue;
 
 			Assert.NotNull(unit);
@@ -58,7 +59,25 @@ namespace CclSharp.Test
 
 		}
 
+		[Fact]
+		public void TestDelayedUnitParameter()
+		{
 
+			var parser = Parser.FromContent("", test);
+			var structure = parser.ParseContent("", test);
+			var rec = structure as UnitRecord;
+
+			Assert.NotNull(rec);
+
+			var wait = rec["{Sum}"] as IDelayedUnit;
+			Assert.NotNull(wait);
+
+			var unit = rec[wait](7, 4) as IUnitValue;
+			Assert.NotNull(unit);
+
+			Assert.Equal("11", unit.Value);
+
+		}
 	}
 }
 

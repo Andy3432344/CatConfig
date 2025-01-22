@@ -2,7 +2,7 @@
 
 namespace CclSharp.Test
 {
-	public class TestUnitProcessor : IDelayedProcessor, IDelayedAccessor
+	public class TestUnitProcessor : IDelayedProcessor
 	{
 		private NoValue noValue = new NoValue();
 
@@ -24,22 +24,36 @@ namespace CclSharp.Test
 			if (!delayed.GetProtocolSchema().Equals(ProtocolSchema, StringComparison.OrdinalIgnoreCase))
 				return noValue;
 
-			delayed.GetHostRecord(this);
+			string parseX = "";
+			string parseY = "";
 
-			if (!entities.TryGetValue(delayed.Id, out var urlRecord))
-				return noValue;
-
-
-			var xUnit = urlRecord["x"] as IUnitValue;
-			var yUnit = urlRecord["y"] as IUnitValue;
 			int x = 0;
 			int y = 0;
 
-			if (xUnit != null && yUnit != null)
+			string path = delayed.GetPath();
+			int i = 0;
+			int phase = 0;
+
+			while (i < path.Length)
 			{
-				int.TryParse(xUnit.Value, out x);
-				int.TryParse(yUnit.Value, out y);
+				char c = path[i];
+
+				if (phase == 0)
+				{
+					if (c == '+')
+						phase = 1;
+					else
+						parseX += c;
+				}
+				else
+				{
+					parseY += c;
+				}
+				i++;
 			}
+
+			int.TryParse(parseX, out x);
+			int.TryParse(parseY, out y);
 
 			return new UnitValue(delayed.Id, (x + y).ToString());
 

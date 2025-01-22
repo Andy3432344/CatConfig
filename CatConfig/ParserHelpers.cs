@@ -304,18 +304,19 @@ internal static class ParserHelpers
 				{
 					Ccl child = new(keyStart, level, key);
 
-					if (!parent.Items.TryAdd(key, new([child])))
-						parent.Items[key].Add(child);
-
-					Ccl p = parent;
-
 					if (nextLevel > level)
 					{
-						p = child;
+						index = Parse(ccl,  child, delimiter, indent, indentStep, index, nextLevel);
 					}
+					else
+					{
+						index = Parse(ccl,  parent, delimiter, indent, indentStep, index, nextLevel);
 
 
-					index = Parse(ccl, p, delimiter, indent, indentStep, index, nextLevel);
+					}
+						if (!parent.Items.TryAdd(key, [child]))
+							parent.Items[key].Add(child);
+
 				}
 			}
 		}

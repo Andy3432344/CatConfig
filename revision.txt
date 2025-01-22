@@ -48,3 +48,11 @@ r7	The GetStructure method passes the parser on, eventually to a DelayedUnit whi
 r7	Added test to run through delayed unit scenario (basically an x + y function)
 r7	Added IDelayedUnit GetHostRecord(accesor) method
 r7	Added IDelayedUnit GetHostName(), GetProtocolSchema(), GetPath() methods
+r8	DelayedUnit now requires a Func<IUnitRecor> instead of a Parser
+r8	DelayedUnit.GetHostRecord method removed 
+r8	DelayedUnit.ResolveUrl method will allow interpolated values to be provided "on the fly"
+r8	DelayedUnit.Interpolate bug fix - UnitValue.Value not IUnit.ToString() when resolving a ccl provided value
+r8	Broke classes and interfaces from Constructor.cs into their own files
+r8	ParserHelper Parse method updated to no set new instance when passing in "parent" recursively, we now call the method in both branches of an if/else
+r8	DelayedUnitTests updated to test for providing values on the fly - changed name of field to "Sum" and the path now uses a plus sign
+r8	TestUnitProcessor now parses the path to get the two integer numbers on either side of the plus sign

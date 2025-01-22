@@ -10,7 +10,8 @@ using System.Threading.Tasks;
 namespace CatConfig;
 public static class Constructor
 {
-
+	internal static NoRecord NoRecord => noRecord ??= new();
+	private static NoRecord? noRecord = null;
 	private static NoValue? noValue = null;
 	private static Dictionary<string, Dictionary<string, IDelayedProcessor>>
 		processors = new(StringComparer.OrdinalIgnoreCase);
@@ -60,9 +61,11 @@ public static class Constructor
 				if (!string.IsNullOrEmpty(unitText))
 				{
 					IUnit unit;
-
 					if (IsDelayed(item, out Ccl? delayed))
-						unit = new DelayedUnit(delayed.Id, delayed.Level, item.Key[1..^1], GetDelayedRecord(delayed.StringValue), parser);
+					{
+						string key = item.Key[1..^1];
+						unit = new DelayedUnit(delayed.Id, key, () => (parser.ParseContent("", GetDelayedRecord(delayed.StringValue)) as IUnitRecord) ?? NoRecord);
+					}
 					else
 						unit = GetUnit(v.Id, unitText, parser, v.Items);
 
@@ -70,8 +73,6 @@ public static class Constructor
 						if (uRec.FieldNames.Length == 1)
 							if (uRec.FieldNames[0].Equals(uRec.Name, StringComparison.OrdinalIgnoreCase))
 								unit = uRec[uRec.FieldNames[0]];
-
-
 					values.Add(unit);
 				}
 			}
@@ -110,7 +111,6 @@ public static class Constructor
 	{
 		string ccl = "";
 		char c = '\0';
-		bool start = false;
 		int i = 0;
 
 		while (i < content.Length && (c = content[i]) != '}')
@@ -143,103 +143,4 @@ public static class Constructor
 		return delayed;
 
 	}
-}
-
-
-
-public record UnitValue(int Id, string Value) : IUnitValue;
-public record UnitArray(int Id, IUnit[] Elements) : IUnitArray, IComplexUnit;
-public record NoRecord : IUnitRecord
-{
-
-	private readonly NoValue noUnit = new();
-	public IUnit this[string fieldName] => noUnit;
-
-	public string Name => nameof(NoRecord);
-	public string[] FieldNames => [];
-	public int Id => -1;
-}
-
-public class UnitRecord : IUnitRecord, IComplexUnit
-{
-	private readonly NoValue noUnit;
-	private readonly Dictionary<string, IUnit> tree;
-	private readonly Func<IDelayedUnit, IUnit> resolver;
-	public UnitRecord(int id, string name, Dictionary<string, IUnit> tree, Func<IDelayedUnit, IUnit> resolver)
-	{
-		Id = id;
-		FieldNames = tree.Keys.ToArray();
-		Name = name;
-		this.resolver = resolver;
-		this.tree = new(tree, StringComparer.OrdinalIgnoreCase);
-		noUnit = new();
-	}
-
-	public int Id { get; }
-	public string Name { get; }
-	public string[] FieldNames { get; }
-	public IUnit this[string fieldName] => GetUnitValue(fieldName);
-
-	private IUnit GetUnitValue(string fieldName)
-	{
-		var val = tree.GetValueOrDefault(fieldName, noUnit);
-
-		if (val is IDelayedUnit delayed)
-			val = resolver(delayed);
-
-		return val;
-	}
-}
-
-public record UnitUrl(string Schema, string Key, string Host, string path);
-
-public record NoValue(int Id = 0) : IUnit;
-public record EmptyValue(int Id) : IUnit, IEmptyUnit;
-
-public interface IDelayedProcessor
-{
-	string Name { get; }
-	string ProtocolSchema { get; }
-
-	IUnit ResolveDelayedUnit(IDelayedUnit delayed);
-}
-
-public interface IDelayedAccessor
-{
-	void DeliverRecord(int id, IUnitRecord hostRecord);
-}
-
-public interface IDelayedUnit : IComplexUnit
-{
-	void GetHostRecord(IDelayedAccessor accessor);
-	string GetHostName();
-	string GetProtocolSchema();
-	string GetPath();
-}
-
-
-public interface IComplexUnit : IUnit;
-public interface IEmptyUnit : IUnit;
-public interface IUnit
-{
-	int Id { get; }
-}
-
-public interface IUnitValue : IUnit
-{
-	string Value { get; }
-}
-
-
-public interface IUnitArray : IUnit
-{
-	IUnit[] Elements { get; }
-}
-
-
-public interface IUnitRecord : IUnit
-{
-	string Name { get; }
-	string[] FieldNames { get; }
-	IUnit this[string fieldName] { get; }
 }
