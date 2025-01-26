@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
 using CatConfig;
@@ -77,6 +78,82 @@ namespace CclSharp.Test
 
 			Assert.Equal("11", unit.Value);
 
+		}
+
+
+		static string nestedDelayedUnitTest(string method) => $$$"""
+			NestedTest =
+				{CalculatedValue} = 
+					URL = test://Test/{Path}/$PRP/{Arg}
+					{Path} = 
+						URL = lang://CSharp/({{{GetMethod(method)}}})"
+						FilePath = ''
+					Arg = 'testing'
+			""";
+
+
+		static string GetMethod(string method)
+		{
+			return $$$"""
+				MethodBlock(({expression}));
+				string MethodBlock(string parameter = {ParameterExpression}.ToString())
+				{
+					{{{method}}}
+				}
+				""";
+		}
+
+
+		[Fact]
+		public void TestNestedDelayedUnit()
+		{
+			var t = nestedDelayedUnitTest("""
+				var directory = Path.GetDirectoryName(parameter);
+				var fileName = Path.GetFileNameWithoutExtension(parameter);
+
+				if (directory != null)
+				{
+					var dir = Directory.GetParent(directory);
+					if (dir != null)
+					{
+						int i = 0;
+						while (i < fileName.Length && !char.IsDigit(fileName[i]))
+							i++;
+
+						int start = i;
+						int dash = 0;
+
+						while (i < fileName.Length && (char.IsDigit(fileName[i]) || fileName[i]=='-' && ++dash==1))
+							i++;
+
+						int end = i;
+
+						string drawingNumber ="H-" + fileName[start..end] + ".SLDDRW";
+						return Path.Combine(dir.FullName, drawingNumber);
+
+					}
+				}
+				return "";
+				""");
+			Assert.NotNull(t);
+
+			var p = Parser.FromContent("", t);
+			var s = p.ParseContent("", t);
+
+			if (s is IUnitRecord rec)
+			{
+				Assert.Single(rec.FieldNames);
+
+				var wait = rec["{CalculatedValue}"] as IDelayedUnit;
+				Assert.NotNull(wait);
+
+				var unit = rec[wait]("testPath","TestArg" ) as IUnitValue;
+				Assert.NotNull(unit);
+
+
+
+
+			}
 		}
 	}
 }

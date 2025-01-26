@@ -14,6 +14,15 @@ public class DelayedUnit : IDelayedUnit
 		Id = id;
 		Name = key;
 		this.getRecord = getRecord;
+		(schema, host, path) = SetupPathParts();
+	}
+
+	private (string, string, string) SetupPathParts()
+	{
+		string schema = "";
+		string host = "";
+		string path = "";
+
 		string fullPath = GetUrlPath();
 		int phase = 0;
 
@@ -50,6 +59,8 @@ public class DelayedUnit : IDelayedUnit
 			}
 			i++;
 		}
+
+		return (schema, host, path);
 	}
 
 	private string GetUrlPath()
@@ -70,24 +81,37 @@ public class DelayedUnit : IDelayedUnit
 
 
 
-	public string GetProtocolSchema()
-	{
-			return Interpolate(schema);
-	}
+	public string GetProtocolSchema() =>
+		Interpolate(schema);
 
-	public string GetHostName()
-	{
-			return Interpolate(host);
-	}
 
-	public string GetPath()
-	{
-			return Interpolate(path);
-	}
+	public string GetHostName() =>
+		Interpolate(host);
+
+	public string GetPath() =>
+		Interpolate(path);
+
 
 	public IDelayedUnit ResolveUrl(Func<int, string, string, IUnitRecord> resolver, string[] fields)
 	{
+		var record = getRecord();
+
 		var index = 0;
+		foreach (var field in record.FieldNames)
+		{
+			if (!field.Equals("URL", StringComparison.OrdinalIgnoreCase))
+			{
+				if (ParserHelpers.IsDelayedValue(field))
+				{
+					var wait = record[field] as IDelayedUnit;
+
+
+
+				}
+			}
+		}
+
+
 		string schemaName = GetFormattedString(schema, fields, ref index);
 		string hostName = GetFormattedString(host, fields, ref index);
 		string requestPath = GetFormattedString(path, fields, ref index);
@@ -99,6 +123,7 @@ public class DelayedUnit : IDelayedUnit
 	}
 
 
+	//positional arguments
 	private string GetFormattedString(string text, string[] fields, ref int index)
 	{
 		string result = "";
@@ -130,8 +155,7 @@ public class DelayedUnit : IDelayedUnit
 		return result;
 	}
 
-
-
+	//named arguments
 	private string Interpolate(string value)
 	{
 		var rec = GetRecord();

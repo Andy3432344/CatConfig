@@ -53,6 +53,13 @@ r8	DelayedUnit.GetHostRecord method removed
 r8	DelayedUnit.ResolveUrl method will allow interpolated values to be provided "on the fly"
 r8	DelayedUnit.Interpolate bug fix - UnitValue.Value not IUnit.ToString() when resolving a ccl provided value
 r8	Broke classes and interfaces from Constructor.cs into their own files
-r8	ParserHelper Parse method updated to no set new instance when passing in "parent" recursively, we now call the method in both branches of an if/else
+r8	ParserHelpers Parse method updated to no set new instance when passing in "parent" recursively, we now call the method in both branches of an if/else
 r8	DelayedUnitTests updated to test for providing values on the fly - changed name of field to "Sum" and the path now uses a plus sign
 r8	TestUnitProcessor now parses the path to get the two integer numbers on either side of the plus sign
+r9	Major refactor of ParserHelpers to reduce duplicate "GetKey*" type methods using single method that returns Key object with index values of (start,end,level,line)
+r9	The rules are: A key-name, followed by a Delimiter will, or will not be followed by printable characters before the next new line, if it is (followed by printable characters)
+r9	This is a string value which includes all characters after the delimiter up to the start of the line on which the next key is found
+r9	Otherwise the sub-values will need to be collected in same manor, i.e. by finding the first subkey-name indicated by the presence of a delimiter.
+r9	An empty key-name means the parent is an Array otherwise the parent is a Record and each subkey is a field.
+r9	Ultimately, A value ends where the next key begins.
+r9	Created CclLevel object to handle stepping up to the next level and resetting

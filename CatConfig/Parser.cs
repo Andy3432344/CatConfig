@@ -31,12 +31,12 @@ public class Parser
 	}
 	private static int GetEndOfMeta(string content)
 	{
-		var firstKey = ParserHelpers.GetKey(content, 0, 0, DefaultDelimiter, DefaultIndent, DefaultIndentStep);
+		var firstKey = ParserHelpers.GetKey(content, 0,  DefaultDelimiter, DefaultIndent, DefaultIndentStep);
 		int start = 0;
 
-		if (firstKey.end > firstKey.start)
+		if (firstKey.End > firstKey.Start)
 		{
-			string key = content[firstKey.start..firstKey.end].Trim();
+			string key = content[firstKey.Start..firstKey.End].Trim();
 			if (key.Equals("meta", StringComparison.OrdinalIgnoreCase))
 				start = ParserHelpers.GetDistanceToNextSibling(content, 0, 0, DefaultDelimiter, DefaultIndent, DefaultIndentStep);
 
@@ -59,23 +59,19 @@ public class Parser
 		char indent = parser.Indent;
 		int indentStep = parser.IndentStep;
 
-		int currentLevel = ParserHelpers.GetNextLevel(content, 0, 0, delimiter, indent, indentStep);
+		var key = ParserHelpers.GetKey(content, 0, delimiter, indent, indentStep);
 
-		if (currentLevel > 0)
-		{
-			var nextKey = ParserHelpers.GetNextKeyLineStart(content, 0, currentLevel, delimiter, indent, indentStep);
-			content = BackDent(content[nextKey..], parser.Indent, parser.IndentStep);
-		}
+		if (key.Level > 0)
+			content = BackDent(content[key.LevelStart..], parser.Indent, parser.IndentStep);
 
 		int index = content.IndexOf(delimiter);
 		index = int.Clamp(index, -1, 0);
 
 		Ccl tree = new(index, 0, path);
-		ParserHelpers.Parse(content,tree, delimiter, indent, indentStep);
+		ParserHelpers.Parse(content, tree, delimiter, indent, indentStep);
 
 		return Constructor.GetStructure(tree, parser);
 	}
-
 
 
 	private static Parser GetMetaParser(IUnit check)
