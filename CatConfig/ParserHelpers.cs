@@ -3,7 +3,117 @@ using CatConfig;
 
 internal static class ParserHelpers
 {
+	/// <summary>
+	/// Populates ~parent~ with all key-value pairs found beneath it at ~level~
+	/// </summary>
+	/// <param name="ccl">Source text</param>
+	/// <param name="parent">Tree node</param>
+	/// <param name="delimiter">Character used to separate Key and Value (default is [=])</param>
+	/// <param name="indent">Character used for indentations(default is [\t])</param>
+	/// <param name="indentStep">Number of ~indent~ characters required to signify one level (default is [1]</param>
+	/// <param name="index">Position in ~ccl~ source text</param>
+	/// <param name="level">Level to parse</param>
+	/// <returns></returns>
+	public static int Parse(string ccl, Ccl parent, char delimiter, char indent, int indentStep, int index = 0, int level = 0)
+	{
+		int last = -1;
 
+		if (parent.Id < 0)
+			return parent.Id;
+
+		var key = GetKey(ccl, index, delimiter, indent, indentStep);
+		while (index < ccl.Length)
+		{
+			if (index == last)
+			{
+				if (ccl[index] == '\n')
+					index++;
+				else
+					index = FindChar(ccl, index, '\n');
+
+				continue;
+			}
+
+			last = index;
+
+			if (key.Level != level)
+				break;
+
+			if (ccl.Length > key.End && ccl[key.End] == delimiter)
+			{
+				string keyName = ccl[key.Start..key.End].Trim();
+				bool delay = IsDelayedValue(keyName);
+
+				int lineStart = index;
+				while (ccl[lineStart] == '\n' && lineStart + 1 < ccl.Length)
+					lineStart++;
+
+				index = key.End;
+				string value = "";
+
+				if (delay)
+				{
+					index = FindChar(ccl, index, '\n');
+					int delayLength = GetDistanceToNextSibling(ccl, index, level, delimiter, indent, indentStep);
+					int delayEnd = index + delayLength;
+					value = ccl[lineStart..delayEnd];
+					index += delayLength;
+				}
+				else
+				{
+					(int valueStart, int valueEnd) = GetValue(ccl, index, level, delimiter, indent, indentStep);
+					value = ccl[valueStart..valueEnd].Trim();
+					index = FindChar(ccl, valueStart, '\n');
+				}
+
+				key = GetKey(ccl, index, delimiter, indent, indentStep);
+				int nextLevel = key.Level;
+
+				if (!string.IsNullOrEmpty(value) || key.Level <= level)
+				{
+					if (!parent.Items.TryGetValue(keyName, out var p))
+						parent.Items[keyName] = p = new([new(key.Start, level, value)]);
+					else
+						p.Add(new(key.Start, level, value));
+				}
+				else
+				{
+					Ccl child = new(key.Start, level, keyName);
+
+					if (key.Level > level)
+						index = Parse(ccl, child, delimiter, indent, indentStep, index, key.Level);
+					else
+						index = Parse(ccl, parent, delimiter, indent, indentStep, index, nextLevel);
+
+					if (!parent.Items.TryAdd(keyName, [child]))
+						parent.Items[keyName].Add(child);
+
+				}
+			}
+		}
+
+		return index;
+	}
+
+	private static (int start, int end) GetValue(string ccl, int index, int level, char delimiter, char indent, int indentStep)
+	{
+		if (ccl[index] != delimiter)
+			return (index, index);
+		else
+			index++;
+
+		int lastLineBreak = FindChar(ccl, index, '\n');
+		if (lastLineBreak == 0)
+			lastLineBreak = ccl.Length;
+
+		var nextKey = GetKey(ccl, lastLineBreak, delimiter, indent, indentStep);
+		return (index, nextKey.LevelStart);
+	}
+
+	public static bool IsDelayedValue(string name)
+	{
+		return name.Length > 1 && name[0] == '{' && name[^1] == '}';
+	}
 	/// <summary>
 	/// Computes the number of characters in ccl that exist between the 
 	/// 'start' index and the next New Line that precedes a line that is at
@@ -59,7 +169,6 @@ internal static class ParserHelpers
 
 		return i;
 	}
-	public record Key(int Start, int End, int Level, int LevelStart);
 
 	/// <summary>
 	/// Finds the next instance of ~delimiter~ that occurs on a line in which
@@ -95,7 +204,7 @@ internal static class ParserHelpers
 			}
 
 			if (c == '\n')
-				lastLine++;
+				lastLine = i;
 			else
 			if (start < 0)
 			{
@@ -113,7 +222,8 @@ internal static class ParserHelpers
 			{
 				if (whiteSpace || c == delimiter) //if c is non whitespace, but not the delimiter
 				{
-					if (c == delimiter)
+					bool keyValid = string.IsNullOrEmpty(ccl[start..i]) || ccl[start..i].Any(c => char.IsLetter(c));
+					if (c == delimiter && keyValid)
 						break;//done
 
 					if (!char.IsWhiteSpace(c))
@@ -142,110 +252,5 @@ internal static class ParserHelpers
 		return new(start, i, levelCount, lastLine);
 	}
 
-
-	private static (int start, int end) GetValue(string ccl, int index, int level, char delimiter, char indent, int indentStep)
-	{
-		if (ccl[index] != delimiter)
-			return (index, index);
-		else
-			index++;
-
-		int lastLineBreak = FindChar(ccl, index, '\n');
-		if (lastLineBreak == 0)
-			lastLineBreak = ccl.Length;
-
-		var nextKey = GetKey(ccl, lastLineBreak, delimiter, indent, indentStep);
-		return (index, nextKey.LevelStart);
-	}
-
-
-
-
-	public static int Parse(string ccl, Ccl parent, char delimiter, char indent, int indentStep, int index = 0, int level = 0)
-	{
-		int last = -1;
-
-		if (parent.Id < 0)
-			return parent.Id;
-
-		var key = GetKey(ccl, index, delimiter, indent, indentStep);
-		while (index < ccl.Length)
-		{
-			if (index == last)
-			{
-				if (ccl[index] == '\n')
-					index++;
-				else
-					index = FindChar(ccl, index, '\n');
-
-				continue;
-			}
-
-			last = index;
-
-			if (key.Level != level)
-				break;
-
-			if (ccl.Length > key.End && ccl[key.End] == delimiter)
-			{
-				string keyName = ccl[key.Start..key.End].Trim();
-				bool delay = IsDelayedValue(keyName);
-
-				int lineStart = index;
-
-				if (ccl[lineStart] == '\n' && lineStart + 1 < ccl.Length)
-					lineStart++;
-
-				index = key.End;
-				string value = "";
-
-				if (delay)
-				{
-					index = FindChar(ccl, index, '\n');
-					int delayLength = GetDistanceToNextSibling(ccl, index, level, delimiter, indent, indentStep);
-					int delayEnd = index + delayLength;
-					value = ccl[lineStart..delayEnd];
-					index += delayLength;
-				}
-				else
-				{
-					(int valueStart, int valueEnd) = GetValue(ccl, index, level, delimiter, indent, indentStep);
-					value = ccl[valueStart..valueEnd].Trim();
-					index = FindChar(ccl, valueStart, '\n');
-				}
-
-				key = GetKey(ccl, index, delimiter, indent, indentStep);
-				int nextLevel = key.Level;
-
-				if (!string.IsNullOrEmpty(value) || key.Level <= level)
-				{
-					if (!parent.Items.TryGetValue(keyName, out var p))
-						parent.Items[keyName] = p = new([new(key.Start, level, value)]);
-					else
-						p.Add(new(key.Start, level, value));
-				}
-				else
-				{
-					Ccl child = new(key.Start, level, keyName);
-
-					if (key.Level > level)
-						index = Parse(ccl, child, delimiter, indent, indentStep, index, key.Level);
-					else
-						index = Parse(ccl, parent, delimiter, indent, indentStep, index, nextLevel);
-
-					if (!parent.Items.TryAdd(keyName, [child]))
-						parent.Items[keyName].Add(child);
-
-				}
-			}
-		}
-
-		return index;
-	}
-
-	public static bool IsDelayedValue(string name)
-	{
-		return name.Length > 1 && name[0] == '{' && name[^1] == '}';
-	}
 
 }

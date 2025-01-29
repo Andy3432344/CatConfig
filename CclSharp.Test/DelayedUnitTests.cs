@@ -14,10 +14,11 @@ namespace CclSharp.Test
 	{
 		public DelayedUnitTests()
 		{
-			Constructor.RegisterProcessor(new TestUnitProcessor());
+			Constructor.RegisterProcessor(new TestSumIntegerUnitProcessor());
+			Constructor.RegisterProcessor(new TestOrderQuantityLookupProcessor());
 		}
 
-		static string url = "test://Test/{x}+{y}";
+		static string url = "test://Sum/{x}+{y}";
 		static string lorem =
 		"""
 		Interdum  =
@@ -26,30 +27,38 @@ namespace CclSharp.Test
 			Maecenas  = true
 			Morbi = 'enim'
 		""";
-
-		static string delayed = '\n' +
+		
+		static string delayed(string x, string y) => '\n' +
 		$$"""
 			{Sum} = 
 				URL = {{url}}
-				x = 10
-				y = 5
+				x = {{x}}
+				y = {{y}}
 		""" + '\n';
 
+		static string nestedDelayed = $$"""
+			NestedTest =
+				{CalculatedValue} = 
+					URL = test://Sum/{OrderQuantity}+{Replacements}
+					{OrderQuantity} = 
+						URL = test://OrderProcessor/{OrderNumber}/Quantity
+						OrderNumber =
+					Replacements = 3
+			""";
 
 		static string ipsum = "\tEtiam = true";
-		static string test = lorem + delayed + ipsum;
+		static string test(string x,string y) => lorem + delayed(x,y) + ipsum;
 
 		[Fact]
 		public void TestDelayedUnit()
 		{
-
+			var test = DelayedUnitTests.test("5", "10");
 			var parser = Parser.FromContent("", test);
 			var structure = parser.ParseContent("", test);
 
 			var rec = structure as IUnitRecord;
 
 			Assert.NotNull(rec);
-
 
 			var value = rec["Sum"];
 			var unit = value as IUnitValue;
@@ -60,13 +69,15 @@ namespace CclSharp.Test
 
 		}
 
+
 		[Fact]
 		public void TestDelayedUnitParameter()
 		{
+			var test = DelayedUnitTests.test("", "");
 
 			var parser = Parser.FromContent("", test);
 			var structure = parser.ParseContent("", test);
-			var rec = structure as UnitRecord;
+			var rec = structure as IUnitRecord;
 
 			Assert.NotNull(rec);
 
@@ -81,79 +92,24 @@ namespace CclSharp.Test
 		}
 
 
-		static string nestedDelayedUnitTest(string method) => $$$"""
-			NestedTest =
-				{CalculatedValue} = 
-					URL = test://Test/{Path}/$PRP/{Arg}
-					{Path} = 
-						URL = lang://CSharp/({{{GetMethod(method)}}})"
-						FilePath = ''
-					Arg = 'testing'
-			""";
-
-
-		static string GetMethod(string method)
-		{
-			return $$$"""
-				MethodBlock(({expression}));
-				string MethodBlock(string parameter = {ParameterExpression}.ToString())
-				{
-					{{{method}}}
-				}
-				""";
-		}
-
-
 		[Fact]
 		public void TestNestedDelayedUnit()
 		{
-			var t = nestedDelayedUnitTest("""
-				var directory = Path.GetDirectoryName(parameter);
-				var fileName = Path.GetFileNameWithoutExtension(parameter);
+			var p = Parser.FromContent("", nestedDelayed);
+			var rec = p.ParseContent("", nestedDelayed) as IUnitRecord;
 
-				if (directory != null)
-				{
-					var dir = Directory.GetParent(directory);
-					if (dir != null)
-					{
-						int i = 0;
-						while (i < fileName.Length && !char.IsDigit(fileName[i]))
-							i++;
+			Assert.NotNull(rec);
 
-						int start = i;
-						int dash = 0;
+			Assert.Single(rec.FieldNames);
 
-						while (i < fileName.Length && (char.IsDigit(fileName[i]) || fileName[i]=='-' && ++dash==1))
-							i++;
+			var wait = rec["CalculatedValue"] as IDelayedUnit;
+			Assert.NotNull(wait);
 
-						int end = i;
+			var unit = rec[wait]("JM-323L") as IUnitValue;
+			Assert.NotNull(unit);
 
-						string drawingNumber ="H-" + fileName[start..end] + ".SLDDRW";
-						return Path.Combine(dir.FullName, drawingNumber);
+			Assert.Equal("10", unit.Value);
 
-					}
-				}
-				return "";
-				""");
-			Assert.NotNull(t);
-
-			var p = Parser.FromContent("", t);
-			var s = p.ParseContent("", t);
-
-			if (s is IUnitRecord rec)
-			{
-				Assert.Single(rec.FieldNames);
-
-				var wait = rec["{CalculatedValue}"] as IDelayedUnit;
-				Assert.NotNull(wait);
-
-				var unit = rec[wait]("testPath","TestArg" ) as IUnitValue;
-				Assert.NotNull(unit);
-
-
-
-
-			}
 		}
 	}
 }

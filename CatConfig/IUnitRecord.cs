@@ -1,6 +1,7 @@
 ﻿namespace CatConfig;
 
 public delegate IUnit Function(params object[] args);
+
 public interface IUnitRecord : IComplexUnit
 {
 	string Name { get; }

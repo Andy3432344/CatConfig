@@ -62,7 +62,7 @@ public class OneOffTests
 	[Fact]
 	public void KeyOnly()
 	{
-		string ccl = "KEY=";
+		string ccl = "FOO=BAR\nKEY=\nFIZZ=BUZ";
 
 		var keyOnly = parser.ParseContent("", ccl);
 

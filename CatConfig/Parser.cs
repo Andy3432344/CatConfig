@@ -21,6 +21,31 @@ public class Parser
 		Delimiter = delimiter;
 	}
 
+	public IUnit ParseFile(string filePath)
+	{
+		string content = File.ReadAllText(filePath);
+		return ParseContent(filePath, content);
+	}
+
+	public IUnit ParseContent(string path, string content)
+	{
+		int start = GetEndOfMeta(content);
+
+		return ParseContentInternal(path, content[start..], this);
+	}
+
+
+	public static Parser FromFile(string filePath)
+	{
+		string content = "";
+
+		if (!string.IsNullOrEmpty(filePath) && File.Exists(filePath))
+			content = File.ReadAllText(filePath);
+
+		return FromContent(filePath, content);
+	}
+
+
 	public static Parser FromContent(string path, string content)
 	{
 		var end = GetEndOfMeta(content);
@@ -102,31 +127,6 @@ public class Parser
 
 		return parser;
 	}
-
-	public static Parser FromFile(string filePath)
-	{
-		string content = "";
-
-		if (!string.IsNullOrEmpty(filePath) && File.Exists(filePath))
-			content = File.ReadAllText(filePath);
-
-		return FromContent(filePath, content);
-	}
-
-
-	public IUnit ParseFile(string filePath)
-	{
-		string content = File.ReadAllText(filePath);
-		return ParseContent(filePath, content);
-	}
-
-	public IUnit ParseContent(string path, string content)
-	{
-		int start = GetEndOfMeta(content);
-
-		return ParseContentInternal(path, content[start..], this);
-	}
-
 
 	private static string BackDent(string content, char indent, int step)
 	{

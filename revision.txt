@@ -63,3 +63,12 @@ r9	Otherwise the sub-values will need to be collected in same manor, i.e. by fin
 r9	An empty key-name means the parent is an Array otherwise the parent is a Record and each subkey is a field.
 r9	Ultimately, A value ends where the next key begins.
 r9	Created CclLevel object to handle stepping up to the next level and resetting
+r10	IDelayedUnit ResolveUrl refactored to return the url instead of the new delayed unit
+r10	IDelayedUnit now has GetArity() method, will determine number of fields that need to be satisfied for the unit to resolve
+r10	DelayedUnit class refactored to trim it down using new static class InterpolationHelpers
+r10	Unit Record now responsible for creating new DelayedUnit using url from new IDelayed Unit ResolveUrl
+r10	Updated Delayed tests - sum tests now require x,y values
+r10 Added test for delayed units that have keys with missing (empty) values, parameters provided are using in place of empty values
+r10	Added test for nested delayed value
+r10 One Off Tests - Sourrounded empty valued key with valued keys in KeyOnly() test 
+r10	TestOrderQuantityLookup class - New Test-Processor to return an integer based on a provided (parameterized) string
