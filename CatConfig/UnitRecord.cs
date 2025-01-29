@@ -10,9 +10,9 @@ public class UnitRecord : IUnitRecord
 	{
 		Id = id;
 		FieldNames = tree.Keys.ToArray();
+		this.tree = new(tree, StringComparer.OrdinalIgnoreCase);
 		Name = name;
 		this.resolve = resolver;
-		this.tree = new(tree, StringComparer.OrdinalIgnoreCase);
 		noUnit = new();
 	}
 
@@ -32,45 +32,29 @@ public class UnitRecord : IUnitRecord
 		if (delayed == null)
 			return noUnit;
 
+		if (delayed.GetArity() > 0 || param.Length > 0)
+		{
+			string path = delayed.ResolveUrl(args);
+			var dic = new Dictionary<string, IUnit>(StringComparer.OrdinalIgnoreCase) { { "URL", new UnitValue(delayed.Id, path) } };
+			delayed = new DelayedUnit(delayed.Id, delayed.Name, () => new UnitRecord(delayed.Id, delayed.Name, dic, resolve));
+		}
 
-		Func<int, string, string, IUnitRecord> resolver = (id, name, path)
-			=> new UnitRecord(
-				id,
-				name,
-				new Dictionary<string, IUnit>() { { "URL", new UnitValue(id, path) } },
-				resolve);
 
-		delayed = delayed.ResolveUrl(resolver, args);
+		if (delayed.GetArity() > 0)
+			return noUnit;
 
-		//if (fieldName.FirstOrDefault() != '{' && fieldName.LastOrDefault() != '}')
 		return resolve(delayed);
-
-
 	}
 
 	private IUnit GetUnitValue(string fieldName)
 	{
 		var val = tree.GetValueOrDefault(fieldName, tree.GetValueOrDefault('{' + fieldName + '}', noUnit));
 
-		if (val is IDelayedUnit delayed && fieldName.FirstOrDefault() != '{' && fieldName.LastOrDefault() != '}')
+		if (val is IDelayedUnit delayed && !ParserHelpers.IsDelayedValue(fieldName) && delayed.GetArity() == 0)
 			val = resolve(delayed);
 
 		return val;
 	}
 
-	public IUnitRecord Await(IDelayedUnit delayed, string urlPath)
-	{
-		var url = new UnitValue(delayed.Id, urlPath);
-		var dic = new Dictionary<string, IUnit>() { { "URL", url } };
-		return new UnitRecord(delayed.Id, delayed.Name, dic, resolve);
-	}
-
-
-	public Func<int, string, IUnitRecord> Await(int id, string urlPath)
-	{
-		var url = new UnitValue(id, urlPath);
-		var dic = new Dictionary<string, IUnit>() { { "URL", url } };
-		return (i, s) => new UnitRecord(i, s, dic, resolve);
-	}
 
 }

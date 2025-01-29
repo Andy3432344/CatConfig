@@ -1,8 +1,119 @@
-﻿using CatConfig;
+﻿using System.Runtime.CompilerServices;
+using CatConfig;
 
 internal static class ParserHelpers
 {
+	/// <summary>
+	/// Populates ~parent~ with all key-value pairs found beneath it at ~level~
+	/// </summary>
+	/// <param name="ccl">Source text</param>
+	/// <param name="parent">Tree node</param>
+	/// <param name="delimiter">Character used to separate Key and Value (default is [=])</param>
+	/// <param name="indent">Character used for indentations(default is [\t])</param>
+	/// <param name="indentStep">Number of ~indent~ characters required to signify one level (default is [1]</param>
+	/// <param name="index">Position in ~ccl~ source text</param>
+	/// <param name="level">Level to parse</param>
+	/// <returns></returns>
+	public static int Parse(string ccl, Ccl parent, char delimiter, char indent, int indentStep, int index = 0, int level = 0)
+	{
+		int last = -1;
 
+		if (parent.Id < 0)
+			return parent.Id;
+
+		var key = GetKey(ccl, index, delimiter, indent, indentStep);
+		while (index < ccl.Length)
+		{
+			if (index == last)
+			{
+				if (ccl[index] == '\n')
+					index++;
+				else
+					index = FindChar(ccl, index, '\n');
+
+				continue;
+			}
+
+			last = index;
+
+			if (key.Level != level)
+				break;
+
+			if (ccl.Length > key.End && ccl[key.End] == delimiter)
+			{
+				string keyName = ccl[key.Start..key.End].Trim();
+				bool delay = IsDelayedValue(keyName);
+
+				int lineStart = index;
+				while (ccl[lineStart] == '\n' && lineStart + 1 < ccl.Length)
+					lineStart++;
+
+				index = key.End;
+				string value = "";
+
+				if (delay)
+				{
+					index = FindChar(ccl, index, '\n');
+					int delayLength = GetDistanceToNextSibling(ccl, index, level, delimiter, indent, indentStep);
+					int delayEnd = index + delayLength;
+					value = ccl[lineStart..delayEnd];
+					index += delayLength;
+				}
+				else
+				{
+					(int valueStart, int valueEnd) = GetValue(ccl, index, level, delimiter, indent, indentStep);
+					value = ccl[valueStart..valueEnd].Trim();
+					index = FindChar(ccl, valueStart, '\n');
+				}
+
+				key = GetKey(ccl, index, delimiter, indent, indentStep);
+				int nextLevel = key.Level;
+
+				if (!string.IsNullOrEmpty(value) || key.Level <= level)
+				{
+					if (!parent.Items.TryGetValue(keyName, out var p))
+						parent.Items[keyName] = p = new([new(key.Start, level, value)]);
+					else
+						p.Add(new(key.Start, level, value));
+				}
+				else
+				{
+					Ccl child = new(key.Start, level, keyName);
+
+					if (key.Level > level)
+						index = Parse(ccl, child, delimiter, indent, indentStep, index, key.Level);
+					else
+						index = Parse(ccl, parent, delimiter, indent, indentStep, index, nextLevel);
+
+					if (!parent.Items.TryAdd(keyName, [child]))
+						parent.Items[keyName].Add(child);
+
+				}
+			}
+		}
+
+		return index;
+	}
+
+	private static (int start, int end) GetValue(string ccl, int index, int level, char delimiter, char indent, int indentStep)
+	{
+		if (ccl[index] != delimiter)
+			return (index, index);
+		else
+			index++;
+
+		int lastLineBreak = FindChar(ccl, index, '\n');
+		if (lastLineBreak == 0)
+			lastLineBreak = ccl.Length;
+
+		var nextKey = GetKey(ccl, lastLineBreak, delimiter, indent, indentStep);
+		return (index, nextKey.LevelStart);
+	}
+
+	public static bool IsDelayedValue(string name)
+	{
+		return name.Length > 1 && name[0] == '{' && name[^1] == '}';
+	}
 	/// <summary>
 	/// Computes the number of characters in ccl that exist between the 
 	/// 'start' index and the next New Line that precedes a line that is at
@@ -51,33 +162,6 @@ internal static class ParserHelpers
 	}
 
 
-
-	public static int GetNextKeyLineStart(string ccl, int index, int level, char delimiter, char indent, int indentStep)
-	{
-		int i = index;
-		char c = ccl[i];
-
-		if (i >= ccl.Length || (i > 0 && ccl[i] != '\n'))
-			return i;
-
-		if (i > 0 || c == '\n')
-			i++;
-
-		int nextLine = FindChar(ccl, i, '\n');
-		if (nextLine == 0)
-			nextLine = ccl.Length;
-
-		int nextDelimiter = FindChar(ccl, i, delimiter);
-
-
-		if (nextDelimiter > nextLine)
-			return GetNextKeyLineStart(ccl, nextLine, level, delimiter, indent, indentStep);
-
-
-		return i;
-	}
-
-
 	public static int FindChar(string ccl, int i, char c)
 	{
 		while (i < ccl.Length && ccl[i] != c)
@@ -86,241 +170,87 @@ internal static class ParserHelpers
 		return i;
 	}
 
-	public static (int start, int end) GetKey(string ccl, int index, int level, char delimiter, char indent, int indentStep)
+	/// <summary>
+	/// Finds the next instance of ~delimiter~ that occurs on a line in which
+	/// it is the first character, or is only preceded by indent characters
+	/// </summary>
+	/// <param name="ccl">Source text</param>
+	/// <param name="index">Current level</param>
+	/// <param name="delimiter">Parser delimiter</param>
+	/// <param name="indent">Parser indent</param>
+	/// <param name="indentStep">Parser indent step</param>
+	/// <returns>An object which contains the Key start, end and line indexes, and the level of the key</returns>
+	public static Key GetKey(string ccl, int index, char delimiter, char indent, int indentStep)
 	{
 		int i = index;
+		int lastLine = i;
 
-		if (i > ccl.Length || i > 0 && ccl[i] != '\n')
-			return (i, i);
-
-
-		//the 'OR' case is important to avoid getting stuck on  new line
+		//the 'OR' case is important to avoid getting stuck on a new line
 		if (i > 0 || (ccl.Length > 0 && ccl[i] == '\n'))
 			i++;
 
-		int lvlCount = 0;
 		int start = -1;
-		int end = 0;
+		bool whiteSpace = false;
+		CclLevel levelCount = new(indentStep);
 
 		while (i < ccl.Length)
 		{
 			char c = ccl[i];
 
-
-			if (c == indent)
-				lvlCount++;
-
-			if (lvlCount / indentStep > level)
+			if (c == '\r')//windows line ending edge case
 			{
-				break;
+				i++;
+				continue;
 			}
-
 
 			if (c == '\n')
-				return GetKey(ccl, i, level, delimiter, indent, indentStep);
-
-			if (c != indent && start == -1)
+				lastLine = i;
+			else
+			if (start < 0)
 			{
-				start = i;
+				if (c != indent)
+					levelCount.Reset();
+
+				if (c == delimiter)
+					break;
+				else if (c == indent)
+					levelCount.Step();
+				else if (!char.IsWhiteSpace(c))
+					start = i;
 			}
-
-			if (c == delimiter)
+			else
 			{
-				end = i;
-				break;
+				if (whiteSpace || c == delimiter) //if c is non whitespace, but not the delimiter
+				{
+					bool keyValid = string.IsNullOrEmpty(ccl[start..i]) || ccl[start..i].Any(c => char.IsLetter(c));
+					if (c == delimiter && keyValid)
+						break;//done
+
+					if (!char.IsWhiteSpace(c))
+					{
+						//this must not be a key
+						i = FindChar(ccl, i, '\n');
+						start = -1;
+						levelCount.HardReset();
+						continue; //skip increment
+					}
+				}
+
+				if (char.IsWhiteSpace(c) && !whiteSpace)//a key cannot contain whitespace
+					whiteSpace = true;//but there can be spaces before the delimiter
 			}
 
 			i++;
 		}
 
-		if (start < 0)
-			start = index;
+		if (start < 0)//no key found edge case
+			start = i;
 
-		return (start, end);
-	}
+		if (i == ccl.Length)//end of string edge case
+			lastLine = ccl.Length;
 
-	private static int GetLevelOfNextKey(string ccl, int index, int level, char delimiter, char indent, int indentStep)
-	{
-		int nextLevel = level;
-		if (index < ccl.Length)
-		{
-			nextLevel = GetNextLevel(ccl, index, level, delimiter, indent, indentStep);
-
-			if (nextLevel == 0)
-			{
-				while (index < ccl.Length && ccl[index] != '\n')
-					index++;
-
-
-				return GetLevelOfNextKey(ccl, index + 1, 0, delimiter, indent, indentStep);
-
-			}
-		}
-		return nextLevel;
+		return new(start, i, levelCount, lastLine);
 	}
 
 
-	public static int GetNextLevel(string ccl, int start, int level, char delimiter, char indent, int indentStep)
-	{
-		if (ccl.Length > 0 && (start == 0 || start < ccl.Length && ccl[start] == '\n'))
-		{
-			int index = start;
-			if (index > 0 || ccl[index] == '\n')
-				index++;
-
-
-			int nextLine = FindChar(ccl, index, '\n');
-			if (nextLine == 0)
-				nextLine = ccl.Length;
-
-			int nextEquals = FindChar(ccl, index, delimiter);
-
-			//line contains no Delimiter?
-			if (nextLine < nextEquals)
-				return GetNextLevel(ccl, nextLine, level, delimiter, indent, indentStep);
-
-			int i = 0;
-
-			while (index + i < ccl.Length && ccl[index + i] == indent)
-				i++;
-
-			level = i / indentStep;
-		}
-
-		return level;
-	}
-
-	private static (int start, int end) GetValue(string ccl, int index, char indent, char delimiter)
-	{
-		if (ccl[index] != delimiter)
-			return (index, index);
-
-		int startingIndex = index;
-		index++;
-		int valueStart = 0;
-
-		int lastLineBreak = ccl.Length;
-
-		while (index < ccl.Length && ccl[index] != delimiter)
-		{
-			char c = ccl[index];
-
-			if (!char.IsWhiteSpace(c) && c != indent)
-				if (valueStart == 0)
-				{
-					valueStart = index;
-				}
-
-			if (c == '\n')
-			{
-				lastLineBreak = index;
-			}
-
-			index++;
-		}
-
-		if (valueStart == 0)
-			valueStart = index;
-
-		if (index == ccl.Length)
-			lastLineBreak = ccl.Length;
-
-		if (index == ccl.Length || index < ccl.Length && ccl[index] == delimiter && lastLineBreak > valueStart)
-		{
-			return (valueStart, lastLineBreak);
-		}
-
-		return (startingIndex, startingIndex);
-	}
-
-	public static int Parse(string ccl, Ccl parent, char delimiter, char indent, int indentStep, int index = 0, int level = 0)
-	{
-
-		int last = -1;
-
-		if (parent.Id < 0)
-			return parent.Id;
-
-		while (index < ccl.Length)
-		{
-			if (index == last)
-			{//no changes, find end of line
-
-				index = FindChar(ccl, index, '\n');
-
-				if (index == last)
-					index++; //this is the end of the line, so move on
-
-				continue;
-			}
-
-			last = index;
-			int currentLevel = GetNextLevel(ccl, index, level, delimiter, indent, indentStep);
-
-			if (currentLevel != level)
-				break;
-
-			(int keyStart, int keyEnd) = GetKey(ccl, index, level, delimiter, indent, indentStep);
-			int keyLength = keyEnd - keyStart;
-
-			if (ccl[keyEnd] == delimiter)
-			{
-
-				string key = ccl[keyStart..keyEnd].Trim();
-				bool delay = key.Length > 1 && key[0] == '{' && key[^1] == '}';
-
-				int lineStart = index;
-
-				if (ccl[lineStart] == '\n' && lineStart + 1 < ccl.Length)
-					lineStart++;
-
-				index = keyEnd;
-				string value = "";
-
-				if (delay)
-				{
-					index = FindChar(ccl, index, '\n');
-					int delayLength = GetDistanceToNextSibling(ccl, index, level, delimiter, indent, indentStep);
-					int delayEnd = index + delayLength;
-					value = ccl[lineStart..delayEnd];
-					index += delayLength;
-				}
-				else
-				{
-					(int valueStart, int valueEnd) = GetValue(ccl, index, indent, delimiter);
-					value = ccl[valueStart..valueEnd].Trim();
-					index = FindChar(ccl, valueStart, '\n');
-				}
-
-				int nextLevel = GetLevelOfNextKey(ccl, index, level, delimiter, indent, indentStep);
-				if (!string.IsNullOrEmpty(value) || nextLevel <= level)
-				{
-					if (!parent.Items.TryGetValue(key, out var p))
-						parent.Items[key] = p = new([new(keyStart, level, value)]);
-					else
-						p.Add(new(keyStart, level, value));
-				}
-				else
-				{
-					Ccl child = new(keyStart, level, key);
-
-					if (nextLevel > level)
-					{
-						index = Parse(ccl,  child, delimiter, indent, indentStep, index, nextLevel);
-					}
-					else
-					{
-						index = Parse(ccl,  parent, delimiter, indent, indentStep, index, nextLevel);
-
-
-					}
-						if (!parent.Items.TryAdd(key, [child]))
-							parent.Items[key].Add(child);
-
-				}
-			}
-		}
-
-		return index;
-	}
 }

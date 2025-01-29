@@ -1,4 +1,8 @@
-﻿namespace CatConfig;
+﻿using System;
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
+
+namespace CatConfig;
 
 public class DelayedUnit : IDelayedUnit
 {
@@ -6,51 +10,35 @@ public class DelayedUnit : IDelayedUnit
 	private readonly string host = "";
 	private readonly string path = "";
 
-	public int Id { get; }
-	public string Name { get; }
-
 	public DelayedUnit(int id, string key, Func<IUnitRecord> getRecord)
 	{
 		Id = id;
 		Name = key;
 		this.getRecord = getRecord;
-		string fullPath = GetUrlPath();
-		int phase = 0;
-
-		int i = 0;
-		while (i < fullPath.Length)
-		{
-			char c = fullPath[i];
-
-			switch (phase)
-			{
-				case 0://schema
-					if (c == ':')
-						phase = 1;
-					else
-						schema += c;
-					break;
-				case 1: // "//"
-					if (c == '/')
-						phase = 2;
-					break;
-				case 2: // "//"
-					if (c == '/')
-						phase = 3;
-					break;
-				case 3: //host
-					if (c == '/')
-						phase = 4;
-					else
-						host += c;
-					break;
-				case 4: //path
-					path += c;
-					break;
-			}
-			i++;
-		}
+		(schema, host, path) = InterpolationHelpers.GetPathParts(GetUrlPath());
 	}
+
+	public int GetArity()
+	{
+		var rec = GetRecord();
+		var fields = rec.FieldNames.Where(f => !f.Equals("url", StringComparison.OrdinalIgnoreCase)).ToArray();
+
+		int unResolved = 0;
+
+
+		foreach (var f in fields)
+		{
+			var field = rec[f];
+			if (field is IDelayedUnit wait)
+				unResolved += wait.GetArity();
+			else if (field is IEmptyUnit)
+				unResolved++;
+		}
+
+		return unResolved;
+	}
+	public int Id { get; }
+	public string Name { get; }
 
 	private string GetUrlPath()
 	{
@@ -67,106 +55,63 @@ public class DelayedUnit : IDelayedUnit
 	protected IUnitRecord GetRecord() => unit ??= getRecord();
 	private IUnitRecord? unit = null;
 	private readonly Func<IUnitRecord> getRecord;
+	public string GetProtocolSchema() =>
+		Resolve(schema, []);
 
+	public string GetHostName() =>
+		Resolve(host, []);
 
+	public string GetPath() =>
+		Resolve(path, []);
 
-	public string GetProtocolSchema()
+	public string ResolveUrl(params string[] parameters) =>
+		Resolve(GetUrlPath(), parameters);
+
+	private string Resolve(string url, string[] parameters)
 	{
-			return Interpolate(schema);
-	}
-
-	public string GetHostName()
-	{
-			return Interpolate(host);
-	}
-
-	public string GetPath()
-	{
-			return Interpolate(path);
-	}
-
-	public IDelayedUnit ResolveUrl(Func<int, string, string, IUnitRecord> resolver, string[] fields)
-	{
-		var index = 0;
-		string schemaName = GetFormattedString(schema, fields, ref index);
-		string hostName = GetFormattedString(host, fields, ref index);
-		string requestPath = GetFormattedString(path, fields, ref index);
-
-		string fullPath = $"{schemaName}://{hostName}/{requestPath}";
-
-		return new DelayedUnit(Id, Name, () => resolver(Id, Name, fullPath));
-
-	}
-
-
-	private string GetFormattedString(string text, string[] fields, ref int index)
-	{
-		string result = "";
-		int phase = 0;
+		var rec = GetRecord();
+		int index = 0;
 		int i = 0;
+		int phase = 0;
+		string result = "";
+		string current = "";
 
-		while (i < text.Length)
+		while (i < url.Length)
 		{
-			char c = text[i];
+			char c = url[i];
+			i++;
+
 			if (phase == 0)
 			{
 				if (c == '{')
 					phase = 1;
 				else
 					result += c;
+
+				continue;
 			}
 			else
+			if (c != '}')
 			{
-				if (c == '}')
-				{
-					phase = 0;
-					result += fields[index];
-					index++;
-				}
+				current += c;
+				continue;
 			}
-			i++;
+
+			//here: phase == 1 && c == '}'
+			phase = 0;
+
+			var value = InterpolationHelpers.ResolveWithRecord(rec[current], rec, current);
+			if (value == '{' + current + '}')
+				value = InterpolationHelpers.ResolveWithParameters(current, parameters, rec, ref index);
+
+			result += value ?? current;
+			if (value != null)
+				index++;
+
+			current = "";
 		}
 
 		return result;
 	}
 
-
-
-	private string Interpolate(string value)
-	{
-		var rec = GetRecord();
-		string resolved = "";
-		string current = "";
-		int phase = 0;
-		int i = 0;
-
-		while (i < value.Length)
-		{
-			char c = value[i];
-			switch (phase)
-			{
-				case 0:
-					if (c == '{')
-						phase = 1;
-					else
-						resolved += c;
-					break;
-				case 1:
-					if (c == '}')
-					{
-						phase = 0;
-						resolved += (rec[current] as IUnitValue)?.Value ?? "";
-						current = "";
-					}
-					else
-						current += c;
-					break;
-
-			}
-			i++;
-		}
-
-		return resolved;
-
-	}
 }

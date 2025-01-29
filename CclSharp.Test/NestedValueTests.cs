@@ -45,6 +45,25 @@ public class NestedValueTests
 					  anim id est laborum.
 		""";
 
+
+	private string MultiLineMissDelimited = """
+		Lorem ipsum dolor sit amet, consectetur adipiscing elit, 
+		sed do eiusmod tempor incididunt ut labore et dolore- magna aliqua. 
+		Ut enim ad minim: veniam, quis nostrud exercitation ullamco laboris nisi ut 
+		aliquip ex ea commodo consequat= Duis aute irure dolor in reprehenderit in 
+		voluptate velit esse cillum dolore eu-fugiat nulla pariatur. Excepteur sint 
+		occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+		""";
+
+	private string MultiLineMissDelimitedIndented = """
+		Lorem ipsum dolor sit amet, consectetur adipiscing elit, 
+			sed do eiusmod tempor incididunt ut labore et dolore- magna aliqua. 
+			Ut enim ad minim: veniam, quis nostrud exercitation ullamco laboris nisi ut 
+		      aliquip ex ea commodo consequat= Duis aute irure dolor in reprehenderit in 
+				voluptate velit esse cillum dolore eu-fugiat nulla pariatur. Excepteur sint 
+			    occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+		""";
+
 	string BaseNestedStructure = TestHelpers.GetNestedStructure('\t', 1, '=');
 
 	private string AppendStructure = "\nLevel0Array2 =\n \t = Value1/1\n\t= Value1/2";
@@ -58,7 +77,7 @@ public class NestedValueTests
 
 
 	protected string InsertMultilineValue => BaseNestedStructure + '\n' + TestHelpers.IndentLevel('\t', 5, "", 1) + "Level5Record3Value3 = " + MultiLineValue + '\n' + AppendStructure;
-	protected string InsertMultilineIndentedValue => BaseNestedStructure + '\n' + "Level5Record3Value3 = " + MultiLineIndentedValue + '\n' + AppendStructure;
+	protected string InsertMultilineIndentedValue => BaseNestedStructure + '\n' + TestHelpers.IndentLevel('\t', 5, "", 1) + "Level5Record3Value3 = " + MultiLineIndentedValue + '\n' + AppendStructure;
 
 
 	List<(char Indent, int Step, char Delimiter)> tests =
@@ -179,6 +198,40 @@ public class NestedValueTests
 
 	}
 
+	[Fact]
+	public void TestMissDelimited()
+	{
+		string control = TestHelpers.RemoveAllWhiteSpace(MultiLineMissDelimited, '\t');
+		string test = TestHelpers.RemoveAllWhiteSpace(MultiLineMissDelimitedIndented, '\t');
+
+		Assert.Equal(control, test);
+		foreach (var scenaro in tests)
+		{			
+			string ccl =
+		$"""
+		MissDelimitedTest {scenaro.Delimiter}
+		{TestHelpers.IndentLevel(scenaro.Indent,1, "",scenaro.Step )}	Key {scenaro.Delimiter} Lorem ipsum dolor sit amet, consectetur adipiscing elit, 
+		sed do eiusmod tempor incididunt ut labore et dolore- magna aliqua. 
+			Ut enim ad minim: veniam, quis nostrud exercitation ullamco laboris nisi ut 
+		      aliquip ex ea commodo consequat= Duis aute irure dolor in reprehenderit in 
+				voluptate velit esse cillum dolore eu-fugiat nulla pariatur. Excepteur sint 
+			    occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+		""";
+			var parser = Parser.FromContent("", meta(scenaro.Indent, scenaro.Step, scenaro.Delimiter));
+			var res = parser.ParseContent("", ccl) as IUnitRecord;
+
+			Assert.NotNull(res);
+
+			var unit = res["Key"] as IUnitValue;
+			Assert.NotNull(unit);
+
+			test = TestHelpers.RemoveAllWhiteSpace(unit.Value, parser.Indent);
+
+			Assert.Equal(control, test);
+
+		}
+
+	}
 	private void RunTest(string ccl, string testName, Parser parser)
 	{
 		var unit = parser.ParseContent(testName, ccl);
@@ -235,8 +288,10 @@ public class NestedValueTests
 			if (newLine == -1)
 				newLine = value.Length;
 
+			string expectedValue =$"Value{level}/{i}" ;
 			string trimmedValue = value[..newLine].Trim();
-			Assert.Equal($"Value{level}/{i}", trimmedValue);
+
+			Assert.Equal(expectedValue, trimmedValue);
 		}
 	}
 
@@ -248,6 +303,5 @@ public class NestedValueTests
 		Assert.Equal(expected, test);
 
 	}
-
 
 }

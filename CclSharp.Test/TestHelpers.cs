@@ -36,12 +36,6 @@ namespace CclSharp.Test
 
 
 		public static string InsertStructure(string insert, string before, string after, Parser p) => before + insert + after;
-		//$"\n{indent(p.Indent, p.IndentStep)}{indent(p.Indent, p.IndentStep)}{indent(p.Indent, p.IndentStep)}Level3Array3 {p.Delimiter}" +
-		//$"\n{indent(p.Indent, p.IndentStep)}{indent(p.Indent, p.IndentStep)}{indent(p.Indent, p.IndentStep)}{indent(p.Indent, p.IndentStep)}{p.Delimiter}Value4/1" +
-		//$"\n{indent(p.Indent, p.IndentStep)}{indent(p.Indent, p.IndentStep)}{indent(p.Indent, p.IndentStep)}{indent(p.Indent, p.IndentStep)}{p.Delimiter}Value4/2\n" +
-
-
-
 		public static string InsertArrayValues(int insertLevel, int index, int valueCount, Parser p)
 		{
 			string levelIndent = string.Join("", Enumerable.Repeat(indent(p.Indent, p.IndentStep), insertLevel));
