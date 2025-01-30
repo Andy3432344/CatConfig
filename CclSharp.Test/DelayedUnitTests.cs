@@ -10,33 +10,33 @@ using CatConfig;
 namespace CclSharp.Test
 {
 
-	public class DelayedUnitTests
-	{
-		public DelayedUnitTests()
-		{
-			Constructor.RegisterProcessor(new TestSumIntegerUnitProcessor());
-			Constructor.RegisterProcessor(new TestOrderQuantityLookupProcessor());
-		}
+    public class DelayedUnitTests
+    {
+        public DelayedUnitTests()
+        {
+            Constructor.RegisterProcessor(new TestSumIntegerUnitProcessor());
+            Constructor.RegisterProcessor(new TestOrderQuantityLookupProcessor());
+        }
 
-		static string url = "test://Sum/{x}+{y}";
-		static string lorem =
-		"""
+        static string url = "test://Sum/{x}+{y}";
+        static string lorem =
+        """
 		Interdum  =
 			Vestibulum  = 'non'
 			Neque = '*.*'
 			Maecenas  = true
 			Morbi = 'enim'
 		""";
-		
-		static string delayed(string x, string y) => '\n' +
-		$$"""
+
+        static string delayed(string x, string y) => '\n' +
+        $$"""
 			{Sum} = 
 				URL = {{url}}
 				x = {{x}}
 				y = {{y}}
 		""" + '\n';
 
-		static string nestedDelayed = $$"""
+        static string nestedDelayed = $$"""
 			NestedTest =
 				{CalculatedValue} = 
 					URL = test://Sum/{OrderQuantity}+{Replacements}
@@ -46,71 +46,71 @@ namespace CclSharp.Test
 					Replacements = 3
 			""";
 
-		static string ipsum = "\tEtiam = true";
-		static string test(string x,string y) => lorem + delayed(x,y) + ipsum;
+        static string ipsum = "\tEtiam = true";
+        static string test(string x, string y) => lorem + delayed(x, y) + ipsum;
 
-		[Fact]
-		public void TestDelayedUnit()
-		{
-			var test = DelayedUnitTests.test("5", "10");
-			var parser = Parser.FromContent("", test);
-			var structure = parser.ParseContent("", test);
+        [Fact]
+        public void TestDelayedUnit()
+        {
+            var test = DelayedUnitTests.test("5", "10");
+            var parser = Parser.FromContent("", test);
+            var structure = parser.ParseContent("", test);
 
-			var rec = structure as IUnitRecord;
+            var rec = structure as IUnitRecord;
 
-			Assert.NotNull(rec);
+            Assert.NotNull(rec);
 
-			var value = rec["Sum"];
-			var unit = value as IUnitValue;
+            var value = rec["Sum"];
+            var unit = value as IUnitValue;
 
-			Assert.NotNull(unit);
+            Assert.NotNull(unit);
 
-			Assert.Equal("15", unit.Value);
+            Assert.Equal("15", unit.Value);
 
-		}
-
-
-		[Fact]
-		public void TestDelayedUnitParameter()
-		{
-			var test = DelayedUnitTests.test("", "");
-
-			var parser = Parser.FromContent("", test);
-			var structure = parser.ParseContent("", test);
-			var rec = structure as IUnitRecord;
-
-			Assert.NotNull(rec);
-
-			var wait = rec["{Sum}"] as IDelayedUnit;
-			Assert.NotNull(wait);
-
-			var unit = rec[wait](7, 4) as IUnitValue;
-			Assert.NotNull(unit);
-
-			Assert.Equal("11", unit.Value);
-
-		}
+        }
 
 
-		[Fact]
-		public void TestNestedDelayedUnit()
-		{
-			var p = Parser.FromContent("", nestedDelayed);
-			var rec = p.ParseContent("", nestedDelayed) as IUnitRecord;
+        [Fact]
+        public void TestDelayedUnitParameter()
+        {
+            var test = DelayedUnitTests.test("", "");
 
-			Assert.NotNull(rec);
+            var parser = Parser.FromContent("", test);
+            var structure = parser.ParseContent("", test);
+            var rec = structure as IUnitRecord;
 
-			Assert.Single(rec.FieldNames);
+            Assert.NotNull(rec);
 
-			var wait = rec["CalculatedValue"] as IDelayedUnit;
-			Assert.NotNull(wait);
+            var wait = rec["{Sum}"] as IDelayedUnit;
+            Assert.NotNull(wait);
 
-			var unit = rec[wait]("JM-323L") as IUnitValue;
-			Assert.NotNull(unit);
+            var unit = rec[wait](7, 4) as IUnitValue;
+            Assert.NotNull(unit);
 
-			Assert.Equal("10", unit.Value);
+            Assert.Equal("11", unit.Value);
 
-		}
-	}
+        }
+
+
+        [Fact]
+        public void TestNestedDelayedUnit()
+        {
+            var p = Parser.FromContent("", nestedDelayed);
+            var rec = p.ParseContent("", nestedDelayed) as IUnitRecord;
+
+            Assert.NotNull(rec);
+
+            Assert.Single(rec.FieldNames);
+
+            var wait = rec["CalculatedValue"] as IDelayedUnit;
+            Assert.NotNull(wait);
+
+            var unit = rec[wait]("JM-323L") as IUnitValue;
+            Assert.NotNull(unit);
+
+            Assert.Equal("10", unit.Value);
+
+        }
+    }
 }
 

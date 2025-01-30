@@ -87,7 +87,7 @@ public class Parser
 		var key = ParserHelpers.GetKey(content, 0, delimiter, indent, indentStep);
 
 		if (key.Level > 0)
-			content = BackDent(content[key.LevelStart..], parser.Indent, parser.IndentStep);
+			content = BackDent(content[key.LineStart..], parser.Indent, parser.IndentStep);
 
 		int index = content.IndexOf(delimiter);
 		index = int.Clamp(index, -1, 0);

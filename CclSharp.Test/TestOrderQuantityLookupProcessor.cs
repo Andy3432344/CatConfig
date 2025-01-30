@@ -16,18 +16,11 @@ public class TestOrderQuantityLookupProcessor : IDelayedProcessor
 		entities.TryAdd(id, hostRecord);
 	}
 
-	public IUnit ResolveDelayedUnit(IDelayedUnit delayed)
+	public IUnit ResolveDelayedUnit(int id, string name, string path)
 	{
-		if (!delayed.GetHostName().Equals(Name, StringComparison.OrdinalIgnoreCase))
-			return noValue;
-
-		if (!delayed.GetProtocolSchema().Equals(ProtocolSchema, StringComparison.OrdinalIgnoreCase))
-			return noValue;
-
 		string current = "";
 		List<string> parts = new();
 
-		string path = delayed.GetPath();
 		int i = 0;
 
 
@@ -55,7 +48,7 @@ public class TestOrderQuantityLookupProcessor : IDelayedProcessor
 		string orderNumber = parts.FirstOrDefault() ?? "";
 		string column = parts.Count > 1 ? parts[1] : "";
 		if (column.Equals("Quantity", StringComparison.OrdinalIgnoreCase))
-			return new UnitValue(delayed.Id, GetQuantity(orderNumber).ToString());
+			return new UnitValue(id, GetQuantity(orderNumber).ToString());
 
 		return noValue;
 	}
