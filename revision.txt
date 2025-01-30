@@ -72,3 +72,5 @@ r10 Added test for delayed units that have keys with missing (empty) values, par
 r10	Added test for nested delayed value
 r10 One Off Tests - Sourrounded empty valued key with valued keys in KeyOnly() test 
 r10	TestOrderQuantityLookup class - New Test-Processor to return an integer based on a provided (parameterized) string
+r11 ParserHelpers.GetDistanceToNextSibling refactored to use object returned by GetKey instead of its own implementation
+r11 Added CatResource project for handling the "res://" schema for calling up outside resources such as a text file
