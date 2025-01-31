@@ -103,7 +103,58 @@ public static class Constructor
         if (string.IsNullOrEmpty(text) && rec.Count == 1 && rec.Values.First() is IComplexUnit)
             return rec.Values.First();//r5
 
+        if (rec.TryGetValue("URL", out var url))
+        {
+            if (url is IUnitValue unit)
+            {
+                var fields = GetFields(unit.Value);
+                foreach (var field in fields)
+                {
+                    if (!rec.ContainsKey(field))
+                    {
+                        rec.Add(field, new EmptyValue(unit.Id));
+                    }
+                }
+            }
+        }
+
+
         return new UnitRecord(id, text, rec, GetDelayedUnitValue);
+    }
+
+    private static string[] GetFields(string url)
+    {
+        int i = 0;
+        int phase = 0;
+        string current = "";
+        List<string> fields = new();
+
+        while (i < url.Length)
+        {
+            char c = url[i];
+            i++;
+
+            if (phase == 0 && c == '{')
+            {
+                phase = 1;
+                continue;
+            }
+            else
+            if (phase == 1 && c != '}')
+            {
+                current += c;
+                continue;
+            }
+            else if(phase==1)
+            {
+                //here: phase == 1 && c == '}'
+                phase = 0;
+
+                fields.Add(current);
+                current = "";
+            }
+        }
+        return fields.ToArray();
     }
 
     private static string GetDelayedRecord(string content)

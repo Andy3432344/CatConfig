@@ -4,8 +4,8 @@ namespace CatResource;
 
 public interface IResourceProvider
 {
-    string DataType { get; }
     string DataFormat { get; }
+    string ResourceName { get; }
     IUnit GetResource(int id, string path);
 
 }

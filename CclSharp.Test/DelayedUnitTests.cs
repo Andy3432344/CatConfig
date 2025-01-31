@@ -57,7 +57,6 @@ namespace CclSharp.Test
             var structure = parser.ParseContent("", test);
 
             var rec = structure as IUnitRecord;
-
             Assert.NotNull(rec);
 
             var value = rec["Sum"];
@@ -110,6 +109,26 @@ namespace CclSharp.Test
 
             Assert.Equal("10", unit.Value);
 
+        }
+
+        [Fact]
+        public void MissingPlaceholderFieldsAreAddedAutomatically()
+        {
+            var test = "File=\n\t{FileSize}=\n\t\tURL = test://Sum/5+{y}";
+
+            var parser = Parser.FromContent("", test);
+            var structure = parser.ParseContent("", test);
+
+            var rec = structure as IUnitRecord;
+            Assert.NotNull(rec);
+
+            var wait = rec["FileSize"] as IDelayedUnit;
+            Assert.NotNull(wait);
+
+            var unit = rec[wait](15) as IUnitValue;
+            Assert.NotNull(unit);
+
+            Assert.Equal("20", unit.Value);
         }
     }
 }

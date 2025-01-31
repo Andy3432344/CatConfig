@@ -1,6 +1,5 @@
 ﻿using System.Text;
 using CatConfig;
-using CatResource.Processor;
 
 namespace CatResource;
 
@@ -12,8 +11,8 @@ public class TextProvider : IResourceProvider
     private NoValue noValue = new();
     private Dictionary<string, IDataResolver> resolvers = new(StringComparer.OrdinalIgnoreCase);
 
-    public string DataType => type;
     public string DataFormat => format;
+    public string ResourceName => type;
 
     public IUnit GetResource(int id, string path)
     {
@@ -41,7 +40,6 @@ public interface IDataResolver
     byte[] LocateResource(string path);
 }
 
-
 public class FileSystemRetriever : IDataRetriever
 {
     private readonly IFileSystem fs;
@@ -50,7 +48,7 @@ public class FileSystemRetriever : IDataRetriever
     {
         Name = name;
         this.fs = fs;
-        
+
     }
 
     public string Name { get; }
@@ -60,9 +58,14 @@ public class FileSystemRetriever : IDataRetriever
         string localPath = getLocalPath(path);
 
         data = fs.Exists(localPath) ?
-            fs.GetFileAtPath(localPath) : [];
+          getData(fs.GetFileAtPath(localPath)) : [];
 
         return data.Length > 0;
+    }
+
+    private byte[] getData(Stream fileStream)
+    {
+        throw new NotImplementedException();
     }
 
     private string getLocalPath(string path)
@@ -80,7 +83,7 @@ public interface IDataRetriever
 
 public interface IFileSystem
 {
-    byte[] GetFileAtPath(string path);
+    Stream GetFileAtPath(string path);
     bool Exists(string path);
 
 }
@@ -88,23 +91,24 @@ public interface IFileSystem
 public class FileSystem : IFileSystem
 {
     private readonly string basePath;
+    private readonly FileAccess access;
 
-    public FileSystem(string basePath)
+    protected string GetPath(string path) => System.IO.Path.Combine(basePath, path);
+
+    public FileSystem(string basePath, FileAccess access)
     {
         this.basePath = basePath;
+        this.access = access;
     }
 
     public bool Exists(string path)
     {
-        return Path.Exists(Path.Combine(basePath, path));
+        return Path.Exists(GetPath(path));
     }
 
-    public byte[] GetFileAtPath(string path)
+    public Stream GetFileAtPath(string path)
     {
-        if (Path.Exists(path))
-            return File.ReadAllBytes(path);
-
-        return [];
+        return new FileStream(GetPath(path), FileMode.OpenOrCreate, access);
     }
 }
 

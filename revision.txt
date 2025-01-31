@@ -74,3 +74,7 @@ r10 One Off Tests - Sourrounded empty valued key with valued keys in KeyOnly() t
 r10	TestOrderQuantityLookup class - New Test-Processor to return an integer based on a provided (parameterized) string
 r11 ParserHelpers.GetDistanceToNextSibling refactored to use object returned by GetKey instead of its own implementation
 r11 Added CatResource project for handling the "res://" schema for calling up outside resources such as a text file
+r12 DelayedUnitTests MissingPlaceholderFieldsAreAddedAutomatically test Added 
+r12 Constructor static class updated to find all place-hold fields in a "URL" value
+r12 All place holders that do not exist are created with an empty value using the same Id as the "URL" value
+r12 Minor updates to IResourceProvider

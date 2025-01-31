@@ -25,7 +25,7 @@ public class Raw : IDelayedProcessor
 
     public bool RegisterProcessor(IResourceProvider proc)
     {
-        return proc.DataType == this.Name &&
+        return proc.ResourceName == this.Name &&
             providers.TryAdd(proc.DataFormat, proc);
     }
 
