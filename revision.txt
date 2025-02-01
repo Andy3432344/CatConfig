@@ -78,3 +78,7 @@ r12 DelayedUnitTests MissingPlaceholderFieldsAreAddedAutomatically test Added
 r12 Constructor static class updated to find all place-hold fields in a "URL" value
 r12 All place holders that do not exist are created with an empty value using the same Id as the "URL" value
 r12 Minor updates to IResourceProvider
+r13 Place Holders no longer create empty values when the field is delayed
+r13 Parser constructor now private
+r13 ParserHelpers' GetDistanceToNextSibling method updated to return the distance to the LineStart of the last key found
+r13 Without regard to the level, valid when last value is multi line

@@ -110,7 +110,7 @@ public static class Constructor
                 var fields = GetFields(unit.Value);
                 foreach (var field in fields)
                 {
-                    if (!rec.ContainsKey(field))
+                    if (!(rec.ContainsKey(field) || rec.ContainsKey('{' + field + '}')))
                     {
                         rec.Add(field, new EmptyValue(unit.Id));
                     }
@@ -145,7 +145,7 @@ public static class Constructor
                 current += c;
                 continue;
             }
-            else if(phase==1)
+            else if (phase == 1)
             {
                 //here: phase == 1 && c == '}'
                 phase = 0;

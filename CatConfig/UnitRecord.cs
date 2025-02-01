@@ -4,11 +4,13 @@ public class UnitRecord : IUnitRecord
 {
 	private readonly NoValue noUnit;
 	private readonly Dictionary<string, IUnit> tree;
-	private readonly Func<IDelayedUnit, IUnit> resolve;
+    private readonly char quote;
+    private readonly Func<IDelayedUnit, IUnit> resolve;
 
 	public UnitRecord(int id, string name, Dictionary<string, IUnit> tree, Func<IDelayedUnit, IUnit> resolver)
 	{
 		Id = id;
+        quote = '\0';
 		FieldNames = tree.Keys.ToArray();
 		this.tree = new(tree, StringComparer.OrdinalIgnoreCase);
 		Name = name;
@@ -16,11 +18,12 @@ public class UnitRecord : IUnitRecord
 		noUnit = new();
 	}
 
-	public int Id { get; }
+    public int Id { get; }
 	public string Name { get; }
 	public string[] FieldNames { get; }
 	public IUnit this[string fieldName] => GetUnitValue(fieldName);
 	public Function this[IDelayedUnit field] => (args) => GetUnitValue(field, args);
+
 
 	private IUnit GetUnitValue(IDelayedUnit field, object[] param)
 	{

@@ -14,7 +14,7 @@ public class Parser
 	public int IndentStep { get; } = DefaultIndentStep;
 	public char Delimiter { get; } = DefaultDelimiter;
 
-	internal Parser(char indent, int step, char delimiter)
+	private Parser(char indent, int step, char delimiter)
 	{
 		Indent = indent;
 		IndentStep = step;
@@ -63,7 +63,7 @@ public class Parser
 		{
 			string key = content[firstKey.Start..firstKey.End].Trim();
 			if (key.Equals("meta", StringComparison.OrdinalIgnoreCase))
-				start = ParserHelpers.GetDistanceToNextSibling(content, 0, 0, DefaultDelimiter, DefaultIndent, DefaultIndentStep);
+				start = ParserHelpers.GetDistanceToNextSibling(content, firstKey.Start, 0, DefaultDelimiter, DefaultIndent, DefaultIndentStep);
 
 		}
 

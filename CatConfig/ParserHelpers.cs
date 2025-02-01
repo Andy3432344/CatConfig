@@ -132,34 +132,45 @@ internal static class ParserHelpers
 
         if (start == 0 || start < ccl.Length)
         {
-            int nextLine = start;
+            var key = GetKey(ccl, start, delimiter, indent, indentStep);
+            int nextLine = FindChar(ccl, key.End, '\n', ccl.Length);
             index = start + 1;
             bool first = true;
-            int lvl = 0;
 
-            //search until: `lvl` == `level` (indicating next sibling)
-            //or lvl < level (indicating no more siblings to be found)
-            while (index < ccl.Length && (first || lvl > level))
+
+            //search until: key.Level == `level` (indicating next sibling)
+            //or key.Level < level (indicating no more siblings to be found)
+            while (index < ccl.Length && (key.Level > level || first))
             {
                 first = false;
 
-                var key = GetKey(ccl, nextLine, delimiter, indent, indentStep);
+                key = GetKey(ccl, nextLine, delimiter, indent, indentStep);
 
-                lvl = key.Level;
+                if (key.LineStart == ccl.Length)
+                {
+                    index = nextLine;
+                    break;
+                }
+
                 index = key.LineStart;
-                nextLine = FindChar(ccl, key.End, '\n');
-            }
+                nextLine = FindChar(ccl, key.End, '\n', ccl.Length);
 
+            }
         }
 
         return index - start;
     }
 
 
-    public static int FindChar(string ccl, int i, char c)
+    public static int FindChar(string ccl, int i, char c, int nonZero = 0)
     {
         while (i < ccl.Length && ccl[i] != c)
+        {
             i++;
+        }
+
+        if (i == 0)
+            return nonZero;
 
         return i;
     }
