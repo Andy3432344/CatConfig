@@ -27,6 +27,40 @@ public class OneOffTests
         Assert.Equal(0, empty.Id);
     }
 
+
+    [Fact]
+    public void TestQuotedValue()
+    {
+        string meta = """
+    meta =
+    	QuoteLiteral=  ' 
+    	Indent= '\t'
+    	IndentStep = 1
+    	Delimiter = '='\n
+    """;
+
+        string ccl = "Key = -Value-\nKey2= -'Value'-";
+        var p = Parser.FromContent("", meta + ccl);
+
+        RunTest(ccl, "-'Value'-", parser);
+        RunTest(ccl, "Value", p);
+    }
+
+    private static void RunTest(string ccl, string value, Parser p)
+    {
+        var record = p.ParseContent("", ccl) as IUnitRecord;
+        Assert.NotNull(record);
+
+        var key = record["Key"] as IUnitValue;
+        var key2 = record["key2"] as IUnitValue;
+
+        Assert.NotNull(key);
+        Assert.NotNull(key2);
+
+        Assert.Equal("-Value-", key.Value);
+        Assert.Equal(value, key2.Value);
+    }
+
     [Fact]
     public void SkippedLines()
     {

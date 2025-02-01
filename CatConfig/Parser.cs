@@ -5,150 +5,165 @@ namespace CatConfig;
 
 public class Parser
 {
-	private const char DefaultIndent = '\t';
-	private const int DefaultIndentStep = 1;
-	private const char DefaultDelimiter = '=';
-	private static Parser parser = new('\t', 1, '=');
+    private const char DefaultIndent = '\t';
+    private const int DefaultIndentStep = 1;
+    private const char DefaultDelimiter = '=';
+    private const char DefaultQuoteLiteral = '\0';
+    private const char DefaultQuoteExpansion = '\0';
 
-	public char Indent { get; } = DefaultIndent;
-	public int IndentStep { get; } = DefaultIndentStep;
-	public char Delimiter { get; } = DefaultDelimiter;
+    private static Parser parser = new(DefaultIndent, DefaultIndentStep, DefaultDelimiter, DefaultQuoteLiteral, DefaultQuoteExpansion);
 
-	private Parser(char indent, int step, char delimiter)
-	{
-		Indent = indent;
-		IndentStep = step;
-		Delimiter = delimiter;
-	}
+    public char Indent { get; } = DefaultIndent;
+    public int IndentStep { get; } = DefaultIndentStep;
+    public char Delimiter { get; } = DefaultDelimiter;
+    public char QuoteLiteral { get; } = DefaultQuoteLiteral;
+    public char QuoteExpansion { get; } = DefaultQuoteExpansion;
 
-	public IUnit ParseFile(string filePath)
-	{
-		string content = File.ReadAllText(filePath);
-		return ParseContent(filePath, content);
-	}
+    private Parser(char indent, int step, char delimiter, char quoteLiteral, char quoteExpansion)
+    {
+        Indent = indent;
+        IndentStep = step;
+        Delimiter = delimiter;
+        QuoteLiteral = quoteLiteral;
+        QuoteExpansion = quoteExpansion;
+    }
 
-	public IUnit ParseContent(string path, string content)
-	{
-		int start = GetEndOfMeta(content);
+    public IUnit ParseFile(string filePath)
+    {
+        string content = File.ReadAllText(filePath);
+        return ParseContent(filePath, content);
+    }
 
-		return ParseContentInternal(path, content[start..], this);
-	}
+    public IUnit ParseContent(string path, string content)
+    {
+        int start = GetEndOfMeta(content);
 
-
-	public static Parser FromFile(string filePath)
-	{
-		string content = "";
-
-		if (!string.IsNullOrEmpty(filePath) && File.Exists(filePath))
-			content = File.ReadAllText(filePath);
-
-		return FromContent(filePath, content);
-	}
+        return ParseContentInternal(path, content[start..], this);
+    }
 
 
-	public static Parser FromContent(string path, string content)
-	{
-		var end = GetEndOfMeta(content);
-		if (end <= 0)
-			return parser;
+    public static Parser FromFile(string filePath)
+    {
+        string content = "";
 
-		return GetMetaParser(path, content[..end]);
-	}
-	private static int GetEndOfMeta(string content)
-	{
-		var firstKey = ParserHelpers.GetKey(content, 0,  DefaultDelimiter, DefaultIndent, DefaultIndentStep);
-		int start = 0;
+        if (!string.IsNullOrEmpty(filePath) && File.Exists(filePath))
+            content = File.ReadAllText(filePath);
 
-		if (firstKey.End > firstKey.Start)
-		{
-			string key = content[firstKey.Start..firstKey.End].Trim();
-			if (key.Equals("meta", StringComparison.OrdinalIgnoreCase))
-				start = ParserHelpers.GetDistanceToNextSibling(content, firstKey.Start, 0, DefaultDelimiter, DefaultIndent, DefaultIndentStep);
-
-		}
-
-		return start;
-	}
+        return FromContent(filePath, content);
+    }
 
 
+    public static Parser FromContent(string path, string content)
+    {
+        var end = GetEndOfMeta(content);
+        if (end <= 0)
+            return parser;
 
-	private static Parser GetMetaParser(string path, string ccl)
-	{
-		var meta = ParseContentInternal(path, ccl, parser);
-		return GetMetaParser(meta);
-	}
+        return GetMetaParser(path, content[..end]);
+    }
+    private static int GetEndOfMeta(string content)
+    {
+        var firstKey = ParserHelpers.GetKey(content, 0, DefaultDelimiter, DefaultIndent, DefaultIndentStep);
+        int start = 0;
 
-	private static IUnit ParseContentInternal(string path, string content, Parser parser)
-	{
-		char delimiter = parser.Delimiter;
-		char indent = parser.Indent;
-		int indentStep = parser.IndentStep;
+        if (firstKey.End > firstKey.Start)
+        {
+            string key = content[firstKey.Start..firstKey.End].Trim();
+            if (key.Equals("meta", StringComparison.OrdinalIgnoreCase))
+                start = ParserHelpers.GetDistanceToNextSibling(content, firstKey.Start, 0, DefaultDelimiter, DefaultIndent, DefaultIndentStep);
 
-		var key = ParserHelpers.GetKey(content, 0, delimiter, indent, indentStep);
+        }
 
-		if (key.Level > 0)
-			content = BackDent(content[key.LineStart..], parser.Indent, parser.IndentStep);
+        return start;
+    }
 
-		int index = content.IndexOf(delimiter);
-		index = int.Clamp(index, -1, 0);
+    private static Parser GetMetaParser(string path, string ccl)
+    {
+        var meta = ParseContentInternal(path, ccl, parser);
+        return GetMetaParser(meta);
+    }
 
-		Ccl tree = new(index, 0, path);
-		ParserHelpers.Parse(content, tree, delimiter, indent, indentStep);
+    private static IUnit ParseContentInternal(string path, string content, Parser parser)
+    {
+        char delimiter = parser.Delimiter;
+        char indent = parser.Indent;
+        int indentStep = parser.IndentStep;
 
-		return Constructor.GetStructure(tree, parser);
-	}
+        var key = ParserHelpers.GetKey(content, 0, delimiter, indent, indentStep);
 
+        if (key.Level > 0)
+            content = BackDent(content[key.LineStart..], parser.Indent, parser.IndentStep);
 
-	private static Parser GetMetaParser(IUnit check)
-	{
-		if (check is IUnitRecord meta && meta.Name.Equals("meta", StringComparison.OrdinalIgnoreCase))
-		{
-			var indentField = meta["Indent"] as IUnitValue;
-			var stepField = meta["IndentStep"] as IUnitValue;
-			var delimiterField = meta["Delimiter"] as IUnitValue;
+        int index = content.IndexOf(delimiter);
+        index = int.Clamp(index, -1, 0);
 
-			string indent = indentField?.Value ?? "'" + DefaultIndent.ToString() + "'";
-			string step = stepField?.Value ?? "'" + DefaultIndentStep.ToString() + "'";
-			string delimiter = delimiterField?.Value ?? "'='";
-			int indentStep = 1;
+        Ccl tree = new(index, 0, path);
+        ParserHelpers.Parse(content, tree, delimiter, indent, indentStep, parser.QuoteLiteral);
 
-			var indentChar = LiteralHelpers.GetCharLiteral(indent, '\'', DefaultIndent);
-			var delimiterChar = LiteralHelpers.GetCharLiteral(delimiter, '\'', DefaultDelimiter);
+        return Constructor.GetStructure(tree, parser);
+    }
 
-			if (delimiterChar == '\0')
-				delimiterChar = '=';
+    private static Parser GetMetaParser(IUnit check)
+    {
+        if (check is IUnitRecord meta && meta.Name.Equals("meta", StringComparison.OrdinalIgnoreCase))
+        {
+            var quoteLiteralMetaField = meta["QuoteMeta"] as IUnitValue;
+            var indentField = meta["Indent"] as IUnitValue;
+            var stepField = meta["IndentStep"] as IUnitValue;
+            var delimiterField = meta["Delimiter"] as IUnitValue;
+            var quoteLiteralField = meta["QuoteLiteral"] as IUnitValue;
+            var quoteExpansionField = meta["QuoteExpansion"] as IUnitValue;
 
-			if (!int.TryParse(step, out indentStep))
-				indentStep = 1;
+            string quoteLiteralMeta = quoteLiteralMetaField?.Value ?? "";
+            string indent = indentField?.Value ?? DefaultQuoteLiteral + DefaultIndent.ToString() + DefaultQuoteLiteral;
+            string step = stepField?.Value ?? DefaultQuoteLiteral + DefaultIndentStep.ToString() + DefaultQuoteLiteral;
+            string delimiter = delimiterField?.Value ?? new([DefaultQuoteLiteral, DefaultDelimiter, DefaultQuoteLiteral]);
+            string quoteLiteral = quoteLiteralField?.Value ?? "";
+            string quoteExpansion = quoteExpansionField?.Value ?? new([DefaultQuoteLiteral, DefaultDelimiter, DefaultQuoteExpansion]);
 
-			return new Parser(indentChar, indentStep, delimiterChar);
+            int indentStep = 1;
 
-		}
+            char qtLiteralMeta = quoteLiteralMeta.FirstOrDefault(DefaultQuoteLiteral);
+            char qtLiteral = quoteLiteral.FirstOrDefault(DefaultQuoteLiteral);
+            char qtExpansion = quoteExpansion.FirstOrDefault(DefaultQuoteExpansion);
 
-		return parser;
-	}
+            var indentChar = LiteralHelpers.GetCharLiteral(indent, qtLiteralMeta, DefaultIndent);
+            var delimiterChar = LiteralHelpers.GetCharLiteral(delimiter, qtLiteralMeta, DefaultDelimiter);
 
-	private static string BackDent(string content, char indent, int step)
-	{
-		int lastLine = 0;
-		int nextLine = ParserHelpers.FindChar(content, 0, '\n');
-		int level = 0;
-		string backDented = "";
+            if (delimiterChar == '\0')
+                delimiterChar = '=';
 
-		//Get BackDent Level from this line
-		while (level < content.Length && content[level] == indent)
-			level++;
+            if (!int.TryParse(step, out indentStep))
+                indentStep = 1;
 
-		level = level / step;
+            return new Parser(indentChar, indentStep, delimiterChar, qtLiteral, qtExpansion);
 
-		while (nextLine > 0 && nextLine <= content.Length)
-		{
-			backDented += content[(lastLine + level)..nextLine] + '\n';
-			lastLine = nextLine + 1;
-			nextLine = ParserHelpers.FindChar(content, lastLine + 1, '\n');
-		}
+        }
 
-		return backDented;
-	}
+        return parser;
+    }
+
+    private static string BackDent(string content, char indent, int step)
+    {
+        int lastLine = 0;
+        int nextLine = ParserHelpers.FindChar(content, 0, '\n');
+        int level = 0;
+        string backDented = "";
+
+        //Get BackDent Level from this line
+        while (level < content.Length && content[level] == indent)
+            level++;
+
+        level = level / step;
+
+        while (nextLine > 0 && nextLine <= content.Length)
+        {
+            backDented += content[(lastLine + level)..nextLine] + '\n';
+            lastLine = nextLine + 1;
+            nextLine = ParserHelpers.FindChar(content, lastLine + 1, '\n');
+        }
+
+        return backDented;
+    }
 
 }

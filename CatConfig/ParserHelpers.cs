@@ -14,7 +14,7 @@ internal static class ParserHelpers
     /// <param name="index">Position in ~ccl~ source text</param>
     /// <param name="level">Level to parse</param>
     /// <returns></returns>
-    public static int Parse(string ccl, Ccl parent, char delimiter, char indent, int indentStep, int index = 0, int level = 0)
+    public static int Parse(string ccl, Ccl parent, char delimiter, char indent, int indentStep, char quoteLiteral, int index = 0, int level = 0)
     {
         int last = -1;
 
@@ -63,6 +63,7 @@ internal static class ParserHelpers
                 {
                     (int valueStart, int valueEnd) = GetValue(ccl, index, level, delimiter, indent, indentStep);
                     value = ccl[valueStart..valueEnd].Trim();
+                    value = value.GetStringLiteral(quoteLiteral);
                     index = FindChar(ccl, valueStart, '\n');
                 }
 
@@ -81,9 +82,9 @@ internal static class ParserHelpers
                     Ccl child = new(key.Start, level, keyName);
 
                     if (key.Level > level)
-                        index = Parse(ccl, child, delimiter, indent, indentStep, index, key.Level);
+                        index = Parse(ccl, child, delimiter, indent, indentStep,  quoteLiteral, index, key.Level);
                     else
-                        index = Parse(ccl, parent, delimiter, indent, indentStep, index, nextLevel);
+                        index = Parse(ccl, parent, delimiter, indent, indentStep,  quoteLiteral, index, nextLevel);
 
                     if (!parent.Items.TryAdd(keyName, [child]))
                         parent.Items[keyName].Add(child);
@@ -171,7 +172,7 @@ internal static class ParserHelpers
 
         if (i == 0)
             return nonZero;
-
+        
         return i;
     }
 

@@ -15,11 +15,14 @@
 
 		}
 
-		public static string GetStringLiteral(string value, char enclosed)
+		public static string GetStringLiteral(this string value, char enclosed)
 		{
 			int i = 0;
 			bool start = false;
 			string ret = "";
+
+            if (enclosed == '\0')
+                return value;
 
 			while (i < value.Length)
 			{
@@ -37,6 +40,9 @@
 
 				i++;
 			}
+
+            if (string.IsNullOrEmpty(ret))
+                ret = value;
 
 			return ret;
 		}

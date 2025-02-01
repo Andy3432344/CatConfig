@@ -13,7 +13,7 @@ r4	The entire (ccl) text of the Key / Value pair is stored as the string value
 r4	When a Key is found to be for a 'delayed' unit the Parser will now advance to the next key that is at the same (or lower) indentation level
 r4	Constructor now creates an 'IDelayedUnit' which stores the original ccl level for future back-denting
 r4	The Delayed value *MUST* be of a record type (though it does not need to resolve to a reocrd type)
-r4	The Delayed record *MUST* include a field called 'URL' which will hold a path that will be used to resolve the true value (TODO: [r7])
+r4	The Delayed record *MUST* include a field called 'URL' which will hold a path that will be used to resolve the true value (TODO: [r7],[r12],[r13])
 r4	The URL path may be interpolated by wrapping placeholder variables in curly braces (TODO: [r7])
 r4	Placeholder values that appear in the URL *MUST* be accompanied by a field of the same name, to be used in the URL path in place of the variable (TODO: [r7])
 r4	Created test for Delayed Unit
@@ -82,3 +82,9 @@ r13 Place Holders no longer create empty values when the field is delayed
 r13 Parser constructor now private
 r13 ParserHelpers' GetDistanceToNextSibling method updated to return the distance to the LineStart of the last key found
 r13 Without regard to the level, valid when last value is multi line
+r14 Added QuoteLiteral and QuoteExpansion meta values, as well as the QuoteMeta meta-meta value
+r14 QuoteLiteral and QuoteExpansion default to '\0' which is interpreted as 'not quoted'
+r14 QuoteMeta is the QuoteLiteral value used in the current meta node
+r14 QuoteLiteral is a character that can be used, in pairs to call out the specific value
+r14 Only the characters found between these [QuoteLiteral]'s are used as the value
+r14 The QuoteLiteral character is not included in the finally expresed Unit Value
