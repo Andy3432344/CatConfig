@@ -1,4 +1,4 @@
-﻿namespace CatResource;
+﻿namespace CatConfig.CclUnit;
 
 public static class PathHelpers
 {
@@ -18,17 +18,28 @@ public static class PathHelpers
 
         return format;
     }
-    public static string[] GetAllNodes(string path)
+    public static string[] GetAllNodes(string path, char quoteChar)
     {
         List<string> parameters = new();
         string current = "";
         int index = 0;
+        bool quote = false;
+
         while (index < path.Length)
         {
-            while (path[index] != '/')
+
+            while (path[index] != '/' || quote)
             {
-                current += path[index];
+                quote = quote ? path[index] != quoteChar :
+                    path[index] == quoteChar;
+
+                if (path[index] != quoteChar)
+                    current += path[index];
+
                 index++;
+
+                if (index == path.Length)
+                    break;
             }
 
             if (!string.IsNullOrEmpty(current))

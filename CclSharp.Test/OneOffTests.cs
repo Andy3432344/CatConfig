@@ -1,5 +1,6 @@
 using System.Reflection.Metadata;
 using CatConfig;
+using CatConfig.CclParser;
 using Newtonsoft.Json.Linq;
 
 namespace CclSharp.Test;

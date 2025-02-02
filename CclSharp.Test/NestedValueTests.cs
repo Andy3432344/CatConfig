@@ -1,12 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection.Metadata.Ecma335;
-using System.Text;
-using System.Threading.Tasks;
-using CatConfig;
-using Microsoft.VisualStudio.TestPlatform.ObjectModel;
+﻿using CatConfig;
+using CatConfig.CclParser;
 using Xunit.Abstractions;
+using static CclSharp.Test.TestHelpers;
 
 namespace CclSharp.Test;
 
@@ -18,14 +13,7 @@ public class NestedValueTests
     {
         this.output = output;
     }
-    private Func<char, int, char, char, string> meta = (char i, int s, char d, char q) => $"""
-		meta =
-			QuoteMeta = '
-			Indent= '{i}'
-			IndentStep = {s}
-			Delimiter = '{d}'
-			QuoteLiteral = '{q}'
-		""";
+
 
     private string MultiLineValue = """
 		Lorem ipsum dolor sit amet, consectetur adipiscing elit, 
@@ -86,7 +74,7 @@ public class NestedValueTests
         [
         (' ', 2, '=','\''),
         (' ', 2, ':','\''),
-        ("\u2192"[0], 1, '-','\'')
+        ('\u2192', 1, '\u21D2','\'')
         ];
 
 
@@ -104,7 +92,7 @@ public class NestedValueTests
     [Fact]
     public void VerifyParserMeta()
     {
-        string ccl = meta(' ', 2, ':', '\'');
+        string ccl = GetMeta(' ', 2, ':', '\'','\0');
 
         var parser = Parser.FromContent("", ccl);
 
@@ -124,7 +112,7 @@ public class NestedValueTests
 
         foreach (var test in tests)
         {
-            string m = meta(test.Indent, test.Step, test.Delimiter, test.QuoteLiteral);
+            string m = GetMeta(test.Indent, test.Step, test.Delimiter, test.QuoteLiteral, '\0');
             var baseStructure = m + '\n' + TestHelpers.GetNestedStructure(test.Indent, test.Step, test.Delimiter) + '\n';
 
             parser = Parser.FromContent("", baseStructure);
@@ -148,7 +136,7 @@ public class NestedValueTests
 
         foreach (var test in tests)
         {
-            string m = meta(test.Indent, test.Step, test.Delimiter, test.QuoteLiteral);
+            string m = GetMeta(test.Indent, test.Step, test.Delimiter, test.QuoteLiteral, '\0');
             var baseStructure = m + '\n' + TestHelpers.GetNestedStructure(test.Indent, test.Step, test.Delimiter) + '\n';
             parser = Parser.FromContent("", baseStructure);
             var append = TestHelpers.InsertArrayValues(3, 3, 2, parser);
@@ -168,7 +156,7 @@ public class NestedValueTests
 
         foreach (var test in tests)
         {
-            parser = Parser.FromContent("", meta(test.Indent, test.Step, test.Delimiter, test.QuoteLiteral));
+            parser = Parser.FromContent("", GetMeta(test.Indent, test.Step, test.Delimiter, test.QuoteLiteral, '\0'));
 
             var baseStructure = TestHelpers.GetNestedStructure(parser.Indent, parser.IndentStep, parser.Delimiter) + '\n';
             var insertMultiLine = baseStructure + TestHelpers.IndentLevel(TestHelpers.IndentLevel(parser.Indent, 3, $"Key{parser.Delimiter}", parser.IndentStep), 3, MultiLineValue);
@@ -188,7 +176,7 @@ public class NestedValueTests
 
         foreach (var test in tests)
         {
-            parser = Parser.FromContent("", meta(test.Indent, test.Step, test.Delimiter, test.QuoteLiteral));
+            parser = Parser.FromContent("", GetMeta(test.Indent, test.Step, test.Delimiter, test.QuoteLiteral, '\0'));
 
             var baseStructure = TestHelpers.GetNestedStructure(parser.Indent, parser.IndentStep, parser.Delimiter) + '\n';
             var insertIndentedMultiLine = baseStructure + TestHelpers.IndentLevel(TestHelpers.IndentLevel(parser.Indent, 3, $"Key{parser.Delimiter}", parser.IndentStep), 3, MultiLineIndentedValue);
@@ -220,7 +208,7 @@ public class NestedValueTests
 				voluptate velit esse cillum dolore eu-fugiat nulla pariatur. Excepteur sint 
 			    occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
 		""";
-            var parser = Parser.FromContent("", meta(scenario.Indent, scenario.Step, scenario.Delimiter, scenario.QuoteLiteral));
+            var parser = Parser.FromContent("", GetMeta(scenario.Indent, scenario.Step, scenario.Delimiter, scenario.QuoteLiteral, '\0'));
             var res = parser.ParseContent("", ccl) as IUnitRecord;
 
             Assert.NotNull(res);

@@ -1,4 +1,5 @@
-﻿namespace CatConfig;
+﻿
+namespace CatConfig;
 
 public record NoArray : IUnitArray
 {

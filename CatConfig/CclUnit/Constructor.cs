@@ -1,13 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
+﻿
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace CatConfig;
+using CatConfig;
+using CatConfig.CclParser;
+namespace CatConfig.CclUnit;
 public static class Constructor
 {
     internal static NoRecord NoRecord => noRecord ??= new();
@@ -25,16 +20,6 @@ public static class Constructor
     }
 
 
-    private static IUnit GetDelayedUnitValue(IDelayedUnit delayed)
-    {
-        if (delayed.GetArity() == 0)
-            if (processors.TryGetValue(delayed.GetProtocolSchema(), out var procs))
-                if (procs.TryGetValue(delayed.GetHostName(), out var proc))
-                    return proc.ResolveDelayedUnit(delayed.Id, delayed.Name, delayed.GetPath());
-
-        return noValue ??= new();
-    }
-
     public static IUnit GetStructure(Ccl token, Parser parser) =>
         GetUnit(token.Id, token.StringValue, parser, token.Items);
 
@@ -47,6 +32,21 @@ public static class Constructor
     }
 
     private static IUnit GetComplexUnit(int id, string text, Parser parser, Dictionary<string, List<Ccl>> tree)
+    {
+        var allUnits = GetUnits(text, parser, tree);
+
+        var units = ConsolidateUnits(id, allUnits);
+
+        if (string.IsNullOrEmpty(text) && units.Count == 1 && units.Values.First() is IComplexUnit)
+            return units.Values.First();//r5
+
+        AddEmptyUnitForMissingPlaceHolders(units);//r12
+
+        return new UnitRecord(id, text, units, d => GetDelayedUnitValue(d, parser.QuoteExpansion));
+    }
+
+
+    private static Dictionary<string, List<IUnit>> GetUnits(string text, Parser parser, Dictionary<string, List<Ccl>> tree)
     {
         Dictionary<string, List<IUnit>> units = new();
 
@@ -61,10 +61,7 @@ public static class Constructor
                 {
                     IUnit unit;
                     if (IsDelayed(item, out Ccl? delayed))
-                    {
-                        string key = item.Key[1..^1];
-                        unit = new DelayedUnit(delayed.Id, key, () => (parser.ParseContent("", GetDelayedRecord(delayed.StringValue)) as IUnitRecord) ?? NoRecord);
-                    }
+                        unit = new DelayedUnit(delayed.Id, item.Key[1..^1], () => parser.ParseContent("", GetDelayedRecord(delayed.StringValue)) as IUnitRecord ?? NoRecord);
                     else
                         unit = GetUnit(v.Id, unitText, parser, v.Items);
 
@@ -72,6 +69,7 @@ public static class Constructor
                         if (uRec.FieldNames.Length == 1)
                             if (uRec.FieldNames[0].Equals(uRec.Name, StringComparison.OrdinalIgnoreCase))
                                 unit = uRec[uRec.FieldNames[0]];
+
                     values.Add(unit);
                 }
             }
@@ -80,46 +78,48 @@ public static class Constructor
                 units.Add(text, values);
             else
                 units.Add(item.Key, values);
-
         }
 
-        Dictionary<string, IUnit> rec = new();
+        return units;
+    }
+
+    private static Dictionary<string, IUnit> ConsolidateUnits(int id, Dictionary<string, List<IUnit>> units)
+    {
+        Dictionary<string, IUnit> namedUnits = new();
 
         foreach (var unit in units)
         {
             if (unit.Value.Count == 0)
-                rec.Add(unit.Key, new EmptyValue(id));
+                namedUnits.Add(unit.Key, new EmptyValue(id));
             if (unit.Value.Count == 1)
-                rec.Add(unit.Key, unit.Value.First());
+                namedUnits.Add(unit.Key, unit.Value.First());
             else if (unit.Value.Count > 0)
             {
                 var arr = new UnitArray(id, unit.Value.ToArray());
-                rec.Add(unit.Key, arr);
+                namedUnits.Add(unit.Key, arr);
             }
 
         }
 
+        return namedUnits;
+    }
 
-        if (string.IsNullOrEmpty(text) && rec.Count == 1 && rec.Values.First() is IComplexUnit)
-            return rec.Values.First();//r5
-
-        if (rec.TryGetValue("URL", out var url))
-        {
+    private static void AddEmptyUnitForMissingPlaceHolders(Dictionary<string, IUnit> units)
+    {
+        if (units.TryGetValue("URL", out var url))
             if (url is IUnitValue unit)
-            {
-                var fields = GetFields(unit.Value);
-                foreach (var field in fields)
-                {
-                    if (!(rec.ContainsKey(field) || rec.ContainsKey('{' + field + '}')))
-                    {
-                        rec.Add(field, new EmptyValue(unit.Id));
-                    }
-                }
-            }
-        }
+                foreach (var field in GetFields(unit.Value))
+                    if (!(units.ContainsKey(field) || units.ContainsKey('{' + field + '}')))
+                        units.Add(field, new EmptyValue(unit.Id));
+    }
+    private static IUnit GetDelayedUnitValue(IDelayedUnit delayed, char qtExpand)
+    {
+        if (delayed.GetArity() == 0)
+            if (processors.TryGetValue(delayed.GetProtocolSchema(), out var procs))
+                if (procs.TryGetValue(delayed.GetHostName(), out var proc))
+                    return proc.ResolveDelayedUnit(delayed.Id, delayed.Name, delayed.GetPath(qtExpand));
 
-
-        return new UnitRecord(id, text, rec, GetDelayedUnitValue);
+        return noValue ??= new();
     }
 
     private static string[] GetFields(string url)
@@ -181,11 +181,11 @@ public static class Constructor
     {
         delayedItem = candidate.Value.FirstOrDefault();
 
-        var delayed = (delayedItem != null &&
+        var delayed = delayedItem != null &&
             candidate.Value.Count == 1 &&
             candidate.Key.Length > 1 &&
             candidate.Key[0] == '{' &&
-            candidate.Key[^1] == '}');
+            candidate.Key[^1] == '}';
 
         if (!delayed)
             delayedItem = null;

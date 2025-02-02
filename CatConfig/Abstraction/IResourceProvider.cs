@@ -1,11 +1,11 @@
-﻿using CatConfig;
+﻿using CatConfig.CclUnit;
 
-namespace CatResource;
+namespace CatConfig;
 
 public interface IResourceProvider
 {
     string DataFormat { get; }
     string ResourceName { get; }
-    IUnit GetResource(int id, string path);
+    IUnit GetResource(int id, UnitPath path);
 
 }

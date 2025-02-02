@@ -78,7 +78,7 @@ r12 DelayedUnitTests MissingPlaceholderFieldsAreAddedAutomatically test Added
 r12 Constructor static class updated to find all place-hold fields in a "URL" value
 r12 All place holders that do not exist are created with an empty value using the same Id as the "URL" value
 r12 Minor updates to IResourceProvider
-r13 Place Holders no longer create empty values when the field is delayed
+r13 Bug fix - Place Holders no longer create empty values when the field exists as a {delayed} field
 r13 Parser constructor now private
 r13 ParserHelpers' GetDistanceToNextSibling method updated to return the distance to the LineStart of the last key found
 r13 Without regard to the level, valid when last value is multi line
@@ -88,3 +88,13 @@ r14 QuoteMeta is the QuoteLiteral value used in the current meta node
 r14 QuoteLiteral is a character that can be used, in pairs to call out the specific value
 r14 Only the characters found between these [QuoteLiteral]'s are used as the value
 r14 The QuoteLiteral character is not included in the finally expresed Unit Value
+r15 PathHelpers static class moved from CatResource to CatConfig
+r15 Constructor static class restructured to reduce surface complexity of the main 'GetComplexUnit' method
+r15 QuoteExpansion character is intended for use in the URL field of a DelayedUnit, its purpose is to allow slash ('/') characters to appear within a path node value
+r15 Static PathHelpers.GetAllNodes method now requires the quote character that will be used to indicate the enclosed, resolved text is a single node regardless of any slashes
+r15 New UnitPath struct now handles the URL path and takes care of parsing out the slash ('/') character seperated "node" values using PathHelpers.GetAllNodes
+r15 The QuoteExpansion character is provided directly from the parser as a part of the Constructor.GetDelayedUnitValue private method, i.e. not passed into the DelayedUnit ctor
+r15 IDelayedUnit GetPath method now returns a UnitPath and, therefore now requires a QuoteExpansion parameter which it uses along with the resolved URL path to create a UnitPath
+r15 IDelayedProcessor.ResolveDelayedUnit now requires a UnitPath instead of string valued path
+r15 IResourceProvider and ResourceEngine static class moved into CatConfig CatResource project removed
+r15 Reorganized code files into relevant folders.
