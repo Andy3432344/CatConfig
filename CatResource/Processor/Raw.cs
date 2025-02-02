@@ -10,12 +10,11 @@ public class Raw : IDelayedProcessor
     public string Name => nameof(Raw);
     public string ProtocolSchema => "res";
 
-    public IUnit ResolveDelayedUnit(int id, string name, string path)
-    {
-        path = path.Trim('/');
+    public IUnit ResolveDelayedUnit(int id, string name, UnitPath path)
+    { 
         int index = 0;
 
-        string format = PathHelpers.GetPathNode(path, ref index);
+        string format = path[0 ];// PathHelpers.GetPathNode(path, ref index);
 
         if (path.Length >= index && providers.TryGetValue(format, out var provider))
             return provider.GetResource(id, path[index..]);

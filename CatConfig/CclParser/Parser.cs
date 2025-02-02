@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Reflection.Emit;
+using CatConfig.CclUnit;
 
-namespace CatConfig;
+namespace CatConfig.CclParser;
 
 public class Parser
 {
@@ -115,7 +116,7 @@ public class Parser
             var quoteExpansionField = meta["QuoteExpansion"] as IUnitValue;
 
             string quoteLiteralMeta = quoteLiteralMetaField?.Value ?? "";
-            string indent = indentField?.Value ?? DefaultQuoteLiteral + DefaultIndent.ToString() + DefaultQuoteLiteral;
+            string indent = indentField?.Value ?? new([DefaultQuoteLiteral, DefaultIndent, DefaultQuoteLiteral]);
             string step = stepField?.Value ?? DefaultQuoteLiteral + DefaultIndentStep.ToString() + DefaultQuoteLiteral;
             string delimiter = delimiterField?.Value ?? new([DefaultQuoteLiteral, DefaultDelimiter, DefaultQuoteLiteral]);
             string quoteLiteral = quoteLiteralField?.Value ?? "";
@@ -125,10 +126,10 @@ public class Parser
 
             char qtLiteralMeta = quoteLiteralMeta.FirstOrDefault(DefaultQuoteLiteral);
             char qtLiteral = quoteLiteral.FirstOrDefault(DefaultQuoteLiteral);
-            char qtExpansion = quoteExpansion.FirstOrDefault(DefaultQuoteExpansion);
 
-            var indentChar = LiteralHelpers.GetCharLiteral(indent, qtLiteralMeta, DefaultIndent);
-            var delimiterChar = LiteralHelpers.GetCharLiteral(delimiter, qtLiteralMeta, DefaultDelimiter);
+            char indentChar = LiteralHelpers.GetCharLiteral(indent, qtLiteralMeta, DefaultIndent);
+            char delimiterChar = LiteralHelpers.GetCharLiteral(delimiter, qtLiteralMeta, DefaultDelimiter);
+            char qtExpansion = LiteralHelpers.GetCharLiteral(quoteExpansion, qtLiteralMeta, DefaultQuoteExpansion);
 
             if (delimiterChar == '\0')
                 delimiterChar = '=';

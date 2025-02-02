@@ -1,5 +1,5 @@
 ﻿using System.Runtime.CompilerServices;
-using CatConfig;
+using CatConfig.CclParser;
 
 internal static class ParserHelpers
 {

@@ -1,4 +1,5 @@
 ﻿using CatConfig;
+using CatConfig.CclParser;
 
 namespace CclSharp;
 

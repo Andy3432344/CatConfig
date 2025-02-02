@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System;
+using System.Text;
 using CatConfig;
 
 namespace CatResource;
@@ -14,7 +15,7 @@ public class TextProvider : IResourceProvider
     public string DataFormat => format;
     public string ResourceName => type;
 
-    public IUnit GetResource(int id, string path)
+    public IUnit GetResource(int id, UnitPath path)
     {
         int index = 0;
         string name = PathHelpers.GetPathNode(path, ref index);

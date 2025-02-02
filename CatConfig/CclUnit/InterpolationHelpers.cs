@@ -1,9 +1,9 @@
-﻿namespace CatConfig
+﻿using CatConfig;
+
+namespace CatConfig
 {
-	internal static class InterpolationHelpers
+    internal static class InterpolationHelpers
 	{
-
-
 		public static (string, string, string) GetPathParts(string url)
 		{
 			string schema = "";
