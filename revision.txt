@@ -98,3 +98,5 @@ r15 IDelayedUnit GetPath method now returns a UnitPath and, therefore now requir
 r15 IDelayedProcessor.ResolveDelayedUnit now requires a UnitPath instead of string valued path
 r15 IResourceProvider and ResourceEngine static class moved into CatConfig CatResource project removed
 r15 Reorganized code files into relevant folders.
+r16	Bug fix - ParserHelpers.Parse next key calculation must happen again after getting a complex value (i.e. record or array) or else 'key' location will be wrong 
+r16	and Parse will fail the level check and exit before finishing.

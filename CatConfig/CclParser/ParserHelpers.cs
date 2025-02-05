@@ -89,8 +89,9 @@ internal static class ParserHelpers
                     if (!parent.Items.TryAdd(keyName, [child]))
                         parent.Items[keyName].Add(child);
 
-                }
-            }
+					key = GetKey(ccl, index, delimiter, indent, indentStep);
+				}
+			}
         }
 
         return index;

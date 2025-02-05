@@ -187,4 +187,27 @@ public class OneOffTests
         Assert.IsAssignableFrom<NoValue>(bad);
 
     }
+
+	[Fact]
+	public void MultipleLevelZero()
+	{
+		var meta = TestHelpers.GetMeta('\t', 1, '=', '\'', '"') + '\n';
+
+		string ccl = meta + """
+  modules=
+  	=std
+  	=Test_ResourceModule
+  std=std.mod
+  Test_ResourceModule = Test_ResourceModule.mod
+  """;
+
+		var unit = parser.ParseContent("", ccl);
+		var record = unit as IUnitRecord;
+		Assert.NotNull(record);
+
+		Assert.Equal(3, record.FieldNames.Length);
+
+
+	}
+
 }
