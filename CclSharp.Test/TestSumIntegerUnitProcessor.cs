@@ -1,4 +1,5 @@
 ﻿using CatConfig;
+using CatConfig.CclUnit;
 
 namespace CclSharp.Test;
 
@@ -16,7 +17,7 @@ public class TestSumIntegerUnitProcessor : IDelayedProcessor
         entities.TryAdd(id, hostRecord);
     }
 
-    public IUnit ResolveDelayedUnit(int id, string name, string path)
+    public IUnit ResolveDelayedUnit(int id, string name, UnitPath fullPath)
     {
         string parseX = "";
         string parseY = "";
@@ -27,7 +28,7 @@ public class TestSumIntegerUnitProcessor : IDelayedProcessor
 
         int i = 0;
         int phase = 0;
-
+        string path = fullPath[0];
         while (i < path.Length)
         {
             char c = path[i];
@@ -51,5 +52,5 @@ public class TestSumIntegerUnitProcessor : IDelayedProcessor
 
         return new UnitValue(id, (x + y).ToString());
 
-    }
+    }//
 }

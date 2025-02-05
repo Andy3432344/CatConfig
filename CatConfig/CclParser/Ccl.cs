@@ -1,4 +1,4 @@
-﻿namespace CatConfig;
+﻿namespace CatConfig.CclParser;
 
 public class Ccl(int index, int level, string text)
 {

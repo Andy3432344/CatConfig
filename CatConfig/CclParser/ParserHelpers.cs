@@ -1,5 +1,5 @@
 ﻿using System.Runtime.CompilerServices;
-using CatConfig;
+using CatConfig.CclParser;
 
 internal static class ParserHelpers
 {
@@ -14,7 +14,7 @@ internal static class ParserHelpers
     /// <param name="index">Position in ~ccl~ source text</param>
     /// <param name="level">Level to parse</param>
     /// <returns></returns>
-    public static int Parse(string ccl, Ccl parent, char delimiter, char indent, int indentStep, int index = 0, int level = 0)
+    public static int Parse(string ccl, Ccl parent, char delimiter, char indent, int indentStep, char quoteLiteral, int index = 0, int level = 0)
     {
         int last = -1;
 
@@ -63,6 +63,7 @@ internal static class ParserHelpers
                 {
                     (int valueStart, int valueEnd) = GetValue(ccl, index, level, delimiter, indent, indentStep);
                     value = ccl[valueStart..valueEnd].Trim();
+                    value = value.GetStringLiteral(quoteLiteral);
                     index = FindChar(ccl, valueStart, '\n');
                 }
 
@@ -81,15 +82,16 @@ internal static class ParserHelpers
                     Ccl child = new(key.Start, level, keyName);
 
                     if (key.Level > level)
-                        index = Parse(ccl, child, delimiter, indent, indentStep, index, key.Level);
+                        index = Parse(ccl, child, delimiter, indent, indentStep,  quoteLiteral, index, key.Level);
                     else
-                        index = Parse(ccl, parent, delimiter, indent, indentStep, index, nextLevel);
+                        index = Parse(ccl, parent, delimiter, indent, indentStep,  quoteLiteral, index, nextLevel);
 
                     if (!parent.Items.TryAdd(keyName, [child]))
                         parent.Items[keyName].Add(child);
 
-                }
-            }
+					key = GetKey(ccl, index, delimiter, indent, indentStep);
+				}
+			}
         }
 
         return index;
@@ -132,35 +134,46 @@ internal static class ParserHelpers
 
         if (start == 0 || start < ccl.Length)
         {
-            int nextLine = start;
+            var key = GetKey(ccl, start, delimiter, indent, indentStep);
+            int nextLine = FindChar(ccl, key.End, '\n', ccl.Length);
             index = start + 1;
             bool first = true;
-            int lvl = 0;
 
-            //search until: `lvl` == `level` (indicating next sibling)
-            //or lvl < level (indicating no more siblings to be found)
-            while (index < ccl.Length && (first || lvl > level))
+
+            //search until: key.Level == `level` (indicating next sibling)
+            //or key.Level < level (indicating no more siblings to be found)
+            while (index < ccl.Length && (key.Level > level || first))
             {
                 first = false;
 
-                var key = GetKey(ccl, nextLine, delimiter, indent, indentStep);
+                key = GetKey(ccl, nextLine, delimiter, indent, indentStep);
 
-                lvl = key.Level;
+                if (key.LineStart == ccl.Length)
+                {
+                    index = nextLine;
+                    break;
+                }
+
                 index = key.LineStart;
-                nextLine = FindChar(ccl, key.End, '\n');
-            }
+                nextLine = FindChar(ccl, key.End, '\n', ccl.Length);
 
+            }
         }
 
         return index - start;
     }
 
 
-    public static int FindChar(string ccl, int i, char c)
+    public static int FindChar(string ccl, int i, char c, int nonZero = 0)
     {
         while (i < ccl.Length && ccl[i] != c)
+        {
             i++;
+        }
 
+        if (i == 0)
+            return nonZero;
+        
         return i;
     }
 

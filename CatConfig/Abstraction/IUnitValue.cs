@@ -2,5 +2,5 @@
 
 public interface IUnitValue : IUnit
 {
-	string Value { get; }
+    string Value { get; }
 }
