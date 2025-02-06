@@ -106,3 +106,5 @@ r17	IDelayedRecord now requires implementation of method Resolve(IUnitRecord)-> 
 r17 pass that record into the Transform method of the DelayedUnit's backing record, the transformed record is used to create a new DelayedUnit which 
 r17	may or may not be fully resolved.
 r17	Added DelayedUnitTests.TestResolveDelayedUnit
+r18	UnitRecord no longer performing unnecessary Arity>0 check before resolving delayed unit - caused issues in ResourceConfig "import" functionality
+r18	UnitRecord.Transform ToDictionary string comparer now OrdinalIgnoreCase
