@@ -9,4 +9,5 @@ public interface IUnitRecord : IComplexUnit
 
     Function this[IDelayedUnit field] { get; }
     IUnit this[string fieldName] { get; }
+	IUnitRecord Transform(IUnitRecord import, bool @override = false);
 }

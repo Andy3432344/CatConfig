@@ -35,6 +35,7 @@ public class UnitRecord : IUnitRecord
         if (delayed == null)
             return noUnit;
 
+		delayed = field;
         if (delayed.GetArity() > 0 || param.Length > 0)
         {
             string path = delayed.ResolveUrl(args);
@@ -58,6 +59,20 @@ public class UnitRecord : IUnitRecord
 
         return val;
     }
+	public IUnitRecord Transform(IUnitRecord import, bool @override = false)
+	{
+		var tree = this.tree.ToDictionary();
+
+		foreach (var field in import.FieldNames)
+			if (tree.TryGetValue(field, out var unit))
+				if (@override || unit is IEmptyUnit)
+					tree[field] = import[field];
+
+
+		var result = new UnitRecord(Id, Name, tree, resolve);
+
+		return result;
+	}
 
 
 }

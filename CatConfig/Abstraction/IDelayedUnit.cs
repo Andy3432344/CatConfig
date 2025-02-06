@@ -11,4 +11,5 @@ public interface IDelayedUnit : IComplexUnit
     UnitPath GetPath(char qtExpand);
     int GetArity();
     string ResolveUrl(params string[] parameters);
+	IDelayedUnit Resolve(IUnitRecord imports);
 }

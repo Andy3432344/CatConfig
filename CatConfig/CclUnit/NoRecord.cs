@@ -14,4 +14,6 @@ public record NoRecord : IUnitRecord
     public string Name => nameof(NoRecord);
     public string[] FieldNames => [];
     public int Id => -1;
+
+	public IUnitRecord Transform(IUnitRecord import, bool @override = false) => this;
 }

@@ -100,3 +100,9 @@ r15 IResourceProvider and ResourceEngine static class moved into CatConfig CatRe
 r15 Reorganized code files into relevant folders.
 r16	Bug fix - ParserHelpers.Parse next key calculation must happen again after getting a complex value (i.e. record or array) or else 'key' location will be wrong 
 r16	and Parse will fail the level check and exit before finishing.
+r17	IUnitRecord now requires implementation of method Transform(IUnitRecord,bool)->IUnitRecord; which will update values in 'this' where the field name matches some field
+r17	in the provided ('import') IUnitRecord ONLY IF the existing value is 'EmptyUnit' or @override is true, @override is false by default
+r17	IDelayedRecord now requires implementation of method Resolve(IUnitRecord)-> IDelayedUnit, the delayed unit will use the provided record as the 'import' record and will
+r17 pass that record into the Transform method of the DelayedUnit's backing record, the transformed record is used to create a new DelayedUnit which 
+r17	may or may not be fully resolved.
+r17	Added DelayedUnitTests.TestResolveDelayedUnit
