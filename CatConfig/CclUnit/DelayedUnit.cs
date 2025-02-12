@@ -114,5 +114,9 @@ public class DelayedUnit : IDelayedUnit
 
         return result;
     }
-
+	public IDelayedUnit Resolve(IUnitRecord imports)
+	{
+		var record = getRecord();
+		return new DelayedUnit(Id, Name, () => record.Transform(imports));
+	}
 }

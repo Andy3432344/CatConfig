@@ -6,17 +6,17 @@ using static CclSharp.Test.TestHelpers;
 namespace CclSharp.Test
 {
 
-    public class DelayedUnitTests
-    {
-        public DelayedUnitTests()
-        {
-            Constructor.RegisterProcessor(new TestSumIntegerUnitProcessor());
-            Constructor.RegisterProcessor(new TestOrderQuantityLookupProcessor());
-        }
+	public class DelayedUnitTests
+	{
+		public DelayedUnitTests()
+		{
+			Constructor.RegisterProcessor(new TestSumIntegerUnitProcessor());
+			Constructor.RegisterProcessor(new TestOrderQuantityLookupProcessor());
+		}
 
-        static string url = "test://Sum/{x}+{y}";
-        static string lorem =
-        """
+		static string url = "test://Sum/{x}+{y}";
+		static string lorem =
+		"""
 		Interdum  =
 			Vestibulum  = 'non'
 			Neque = '*.*'
@@ -24,64 +24,64 @@ namespace CclSharp.Test
 			Morbi = 'enim'
 		""";
 
-        static string delayed(string x, string y) => '\n' +
-        $$"""
+		static string delayed(string x, string y) => '\n' +
+		$$"""
 			{Sum} = 
 				URL = {{url}}
 				x = {{x}}
 				y = {{y}}
 		""" + '\n';
-        static string ipsum = "\tEtiam = true";
+		static string ipsum = "\tEtiam = true";
 
 
-        static string test(string x, string y) => lorem + delayed(x, y) + ipsum;
+		static string test(string x, string y) => lorem + delayed(x, y) + ipsum;
 
-        [Fact]
-        public void TestDelayedUnit()
-        {
-            var test = DelayedUnitTests.test("5", "10");
-            var parser = Parser.FromContent("", test);
-            var structure = parser.ParseContent("", test);
+		[Fact]
+		public void TestDelayedUnit()
+		{
+			var test = DelayedUnitTests.test("5", "10");
+			var parser = Parser.FromContent("", test);
+			var structure = parser.ParseContent("", test);
 
-            var rec = structure as IUnitRecord;
-            Assert.NotNull(rec);
+			var rec = structure as IUnitRecord;
+			Assert.NotNull(rec);
 
-            var value = rec["Sum"];
-            var unit = value as IUnitValue;
+			var value = rec["Sum"];
+			var unit = value as IUnitValue;
 
-            Assert.NotNull(unit);
+			Assert.NotNull(unit);
 
-            Assert.Equal("15", unit.Value);
+			Assert.Equal("15", unit.Value);
 
-        }
+		}
 
 
-        [Fact]
-        public void TestDelayedUnitParameter()
-        {
-            var test = DelayedUnitTests.test("", "");
+		[Fact]
+		public void TestDelayedUnitParameter()
+		{
+			var test = DelayedUnitTests.test("", "");
 
-            var parser = Parser.FromContent("", test);
-            var structure = parser.ParseContent("", test);
-            var rec = structure as IUnitRecord;
+			var parser = Parser.FromContent("", test);
+			var structure = parser.ParseContent("", test);
+			var rec = structure as IUnitRecord;
 
-            Assert.NotNull(rec);
+			Assert.NotNull(rec);
 
-            var wait = rec["Sum"] as IDelayedUnit;
-            Assert.NotNull(wait);
+			var wait = rec["Sum"] as IDelayedUnit;
+			Assert.NotNull(wait);
 
-            var unit = rec[wait](7, 4) as IUnitValue;
-            Assert.NotNull(unit);
+			var unit = rec[wait](7, 4) as IUnitValue;
+			Assert.NotNull(unit);
 
-            Assert.Equal("11", unit.Value);
+			Assert.Equal("11", unit.Value);
 
-        }
+		}
 
-        [Fact]
-        public void TestNestedDelayedUnit()
-        {
-            var meta = GetMeta('\t', 1, '=', '\'', '"');
-            string nestedDelayed = $$"""
+		[Fact]
+		public void TestNestedDelayedUnit()
+		{
+			var meta = GetMeta('\t', 1, '=', '\'', '"');
+			string nestedDelayed = $$"""
 			NestedTest =
 				{CalculatedValue} = 
 					URL = test://Sum/{OrderQuantity}+{Replacements}
@@ -91,74 +91,106 @@ namespace CclSharp.Test
 					Replacements = 3
 			""";
 
-            string ccl = meta + '\n' + nestedDelayed;
-            var p = Parser.FromContent("", ccl);
-            var rec = p.ParseContent("", ccl) as IUnitRecord;
+			string ccl = meta + '\n' + nestedDelayed;
+			var p = Parser.FromContent("", ccl);
+			var rec = p.ParseContent("", ccl) as IUnitRecord;
 
-            Assert.NotNull(rec);
+			Assert.NotNull(rec);
 
-            Assert.Single(rec.FieldNames);
+			Assert.Single(rec.FieldNames);
 
-            var wait = rec["CalculatedValue"] as IDelayedUnit;
-            Assert.NotNull(wait);
+			var wait = rec["CalculatedValue"] as IDelayedUnit;
+			Assert.NotNull(wait);
 
-            var unit = rec[wait]("JM-323L") as IUnitValue;
-            Assert.NotNull(unit);
+			var unit = rec[wait]("JM-323L") as IUnitValue;
+			Assert.NotNull(unit);
 
-            Assert.Equal("10", unit.Value);
-        }
+			Assert.Equal("10", unit.Value);
+		}
 
-        [Fact]
-        public void TestExpansionQuotedDelayedUnit()
-        {
-            var meta = GetMeta('\t', 1, '=', '\'', '"');
-            var ccl = meta + '\n' +
-            """
+		[Fact]
+		public void TestExpansionQuotedDelayedUnit()
+		{
+			var meta = GetMeta('\t', 1, '=', '\'', '"');
+			var ccl = meta + '\n' +
+			"""
             Order =	
             	{OrderQuantity} = 
             		URL = test://OrderProcessor/"{OrderNumber}"/Quantity
             		OrderNumber =
             """;
 
-            var p = Parser.FromContent("", ccl);
+			var p = Parser.FromContent("", ccl);
 
-            Assert.Equal('"', p.QuoteExpansion);
-            var rec = p.ParseContent("", ccl) as IUnitRecord;
-            Assert.NotNull(rec);
+			Assert.Equal('"', p.QuoteExpansion);
+			var rec = p.ParseContent("", ccl) as IUnitRecord;
+			Assert.NotNull(rec);
 
-            Assert.Single(rec.FieldNames);
+			Assert.Single(rec.FieldNames);
 
-            var wait = rec["OrderQuantity"] as IDelayedUnit;
-            Assert.NotNull(wait);
+			var wait = rec["OrderQuantity"] as IDelayedUnit;
+			Assert.NotNull(wait);
 
-            var unit = rec[wait]("HN/787K") as IUnitValue;
-            Assert.NotNull(unit);
+			var unit = rec[wait]("HN/787K") as IUnitValue;
+			Assert.NotNull(unit);
 
-            Assert.Equal("12", unit.Value);
-        }
-           
-        [Fact]
-        public void MissingPlaceholderFieldsAreAddedAutomatically()
-        {
-            var test = "File=\n\t{FileSize}=\n\t\tURL = test://Sum/5+{y}";
+			Assert.Equal("12", unit.Value);
+		}
 
-            var parser = Parser.FromContent("", test);
-            var structure = parser.ParseContent("", test);
+		[Fact]
+		public void MissingPlaceholderFieldsAreAddedAutomatically()
+		{
+			var test = "File=\n\t{FileSize}=\n\t\tURL = test://Sum/5+{y}";
 
-            var rec = structure as IUnitRecord;
-            Assert.NotNull(rec);
+			var parser = Parser.FromContent("", test);
+			var structure = parser.ParseContent("", test);
 
-            var wait = rec["FileSize"] as IDelayedUnit;
-            Assert.NotNull(wait);
+			var rec = structure as IUnitRecord;
+			Assert.NotNull(rec);
 
-            var unit = rec[wait](15) as IUnitValue;
-            Assert.NotNull(unit);
+			var wait = rec["FileSize"] as IDelayedUnit;
+			Assert.NotNull(wait);
 
-            Assert.Equal("20", unit.Value);
-        }
+			var unit = rec[wait](15) as IUnitValue;
+			Assert.NotNull(unit);
+
+			Assert.Equal("20", unit.Value);
+		}
+
+		[Fact]
+		public void TestResolveDelayedUnit()
+		{
+			var meta = GetMeta('\t', 1, '=', '\'', '"');
+			var ccl = meta + '\n' +
+			"""
+            Order =	
+            	{OrderQuantity} = 
+            		URL = test://OrderProcessor/"{OrderNumber}"/Quantity
+            		OrderNumber =
+            """;
+			var p = Parser.FromContent("", ccl);
+
+			Assert.Equal('"', p.QuoteExpansion);
+			var rec = p.ParseContent("", ccl) as IUnitRecord;
+			Assert.NotNull(rec);
+
+			Assert.Single(rec.FieldNames);
+
+			var wait = rec["OrderQuantity"] as IDelayedUnit;
+			Assert.NotNull(wait);
 
 
+			var orderNumber = "OrderNumber = GB/121F";
+			var import = p.ParseContent("", orderNumber) as IUnitRecord;
+			Assert.NotNull(import);
 
-    }
+			wait = wait.Resolve(import);
+
+			var result = rec[wait]() as IUnitValue;
+			Assert.NotNull(result);
+
+			Assert.Equal("1", result.Value);
+		}
+	}
 }
 
