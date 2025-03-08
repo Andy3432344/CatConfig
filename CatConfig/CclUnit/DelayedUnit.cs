@@ -10,10 +10,12 @@ public class DelayedUnit : IDelayedUnit
     private readonly string schema = "";
     private readonly string host = "";
     private readonly string path = "";
+	public int Level { get; }
 
-    public DelayedUnit(int id, string key, Func<IUnitRecord> getRecord)
+	public DelayedUnit(int id, int level, string key, Func<IUnitRecord> getRecord)
     {
         Id = id;
+		Level = level;
         Name = key;
         this.getRecord = getRecord;
         (schema, host, path) = InterpolationHelpers.GetPathParts(GetUrlPath());
@@ -117,6 +119,6 @@ public class DelayedUnit : IDelayedUnit
 	public IDelayedUnit Resolve(IUnitRecord imports)
 	{
 		var record = getRecord();
-		return new DelayedUnit(Id, Name, () => record.Transform(imports));
+		return new DelayedUnit(Id,record.Level, Name, () => record.Transform(imports));
 	}
 }

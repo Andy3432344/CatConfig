@@ -121,11 +121,11 @@ public class OneOffTests
 
         var valueOnly = parser.ParseContent("", ccl);
 
-        var valueRecord = valueOnly as IUnitRecord;
+        var array = valueOnly as IUnitArray;
 
-        Assert.NotNull(valueRecord);
+        Assert.NotNull(array);
 
-        var value = valueRecord[""];
+		var value = array.Elements[0];
 
         var val = value as IUnitValue;
 

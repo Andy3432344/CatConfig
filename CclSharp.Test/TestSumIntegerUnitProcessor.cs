@@ -5,7 +5,7 @@ namespace CclSharp.Test;
 
 public class TestSumIntegerUnitProcessor : IDelayedProcessor
 {
-    private NoValue noValue = new NoValue();
+    private NoValue noValue = new NoValue(0);
 
     private Dictionary<int, IUnitRecord> entities = new();
 
@@ -17,7 +17,7 @@ public class TestSumIntegerUnitProcessor : IDelayedProcessor
         entities.TryAdd(id, hostRecord);
     }
 
-    public IUnit ResolveDelayedUnit(int id, string name, UnitPath fullPath)
+    public IUnit ResolveDelayedUnit(IUnit request, string name, UnitPath fullPath)
     {
         string parseX = "";
         string parseY = "";
@@ -50,7 +50,7 @@ public class TestSumIntegerUnitProcessor : IDelayedProcessor
         int.TryParse(parseX, out x);
         int.TryParse(parseY, out y);
 
-        return new UnitValue(id, (x + y).ToString());
+        return new UnitValue(request.Id, request.Level,(x + y).ToString());
 
     }//
 }

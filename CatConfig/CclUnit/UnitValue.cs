@@ -2,4 +2,4 @@
 
 namespace CatConfig;
 
-public record UnitValue(int Id, string Value) : IUnitValue;
+public record UnitValue(int Id,int Level, string Value) : IUnitValue;

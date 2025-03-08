@@ -2,4 +2,4 @@
 
 namespace CatConfig;
 
-public record UnitArray(int Id, IUnit[] Elements) : IUnitArray, IComplexUnit;
+public record UnitArray(int Id,int Level, IUnit[] Elements) : IUnitArray, IComplexUnit;

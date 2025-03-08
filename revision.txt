@@ -108,3 +108,10 @@ r17	may or may not be fully resolved.
 r17	Added DelayedUnitTests.TestResolveDelayedUnit
 r18	UnitRecord no longer performing unnecessary Arity>0 check before resolving delayed unit - caused issues in ResourceConfig "import" functionality
 r18	UnitRecord.Transform ToDictionary string comparer now OrdinalIgnoreCase
+r19	Changes made to capture 'Level' of key in IUnit, to make pretty printing easier
+r19	DelayedProcessor now must be supplied with IUnit instead of Id so we can get the id and level
+r19	ResourseProvider required similar change to capture unit level
+r19	Bugfix for single item arrays, was being read in as single value is seen as an array, this required capturing the length of the key name during parsing
+r19	Then, During construction we can see if its items have key names (record) or not (array)
+r19	Guards in UnitPath struct make it more forgiving regarding indexed retrieval and range lookup
+r19	Resource Engine now stores provider based on resource type/name, desired format must be provided since there are now two provider dictionaries to seperate mod/ext

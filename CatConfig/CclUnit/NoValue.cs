@@ -2,5 +2,5 @@
 
 namespace CatConfig;
 
-public record NoValue(int Id = 0) : IUnit;
-public record EmptyValue(int Id) : IUnit, IEmptyUnit;
+public record NoValue(int Level,int Id = 0) : IUnit;
+public record EmptyValue(int Id,int Level) : IUnit, IEmptyUnit;

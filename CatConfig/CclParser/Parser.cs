@@ -98,7 +98,7 @@ public class Parser
         int index = content.IndexOf(delimiter);
         index = int.Clamp(index, -1, 0);
 
-        Ccl tree = new(index, 0, path);
+        Ccl tree = new(index, 0, path,path.Length);
         ParserHelpers.Parse(content, tree, delimiter, indent, indentStep, parser.QuoteLiteral);
 
         return Constructor.GetStructure(tree, parser);

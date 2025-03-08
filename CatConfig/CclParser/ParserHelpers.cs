@@ -73,13 +73,13 @@ internal static class ParserHelpers
                 if (!string.IsNullOrEmpty(value) || key.Level <= level)
                 {
                     if (!parent.Items.TryGetValue(keyName, out var p))
-                        parent.Items[keyName] = p = new([new(key.Start, level, value)]);
+                        parent.Items[keyName] = p = new([new(key.Start, level, value, keyName.Length)]);
                     else
-                        p.Add(new(key.Start, level, value));
+                        p.Add(new(key.Start, level, value, keyName.Length));
                 }
                 else
                 {
-                    Ccl child = new(key.Start, level, keyName);
+                    Ccl child = new(key.Start, level, keyName, keyName.Length);
 
                     if (key.Level > level)
                         index = Parse(ccl, child, delimiter, indent, indentStep,  quoteLiteral, index, key.Level);
